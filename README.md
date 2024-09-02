@@ -14,7 +14,7 @@ A desktop application for managing and interacting with Yuan Shen (Genshin Impac
   - [ ] Modify artifact stats
 - [ ] Developer Features
   - [ ] High-level game/server inspector
-  - [ ] Packet sniffer
+  - [x] Packet sniffer
   - [ ] Runtime definition dumper & deobfuscator
 
 ## For Developers
