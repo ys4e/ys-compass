@@ -29,7 +29,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "moe.seikimo.yscompass",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -56,10 +56,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
+        "height": 720,
         "resizable": true,
-        "title": "Yuan Shen Compass",
-        "width": 800
+        "title": "YS Compass",
+        "width": 1280
       }
     ]
   }
