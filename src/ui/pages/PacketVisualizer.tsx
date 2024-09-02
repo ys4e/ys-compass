@@ -1,7 +1,7 @@
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 
 import { FixedSizeList } from "react-window";
-import { Item, ItemParams, Menu } from "react-contexify";
+import { Item, ItemParams, Menu, Separator } from "react-contexify";
 import AutoSizer from "react-virtualized-auto-sizer";
 import classNames from "classnames";
 
@@ -156,13 +156,26 @@ function recursiveCompare(
 /**
  * Invoked when a 'Copy' action from the context menu is selected.
  */
-async function copyPacket({ id, props: { packet } }: ItemParams) {
+async function copyPacket({ id, props }: ItemParams<{ packet: PacketType }>) {
+    if (props == undefined) {
+        alert("Failed to copy packet to clipboard.");
+        console.error("Failed to copy packet to clipboard: props is undefined.");
+        return;
+    }
+    const { packet } = props;
+
     try {
-        await navigator.clipboard.writeText(
-            id == "copy" ?
-                packet.data :
-                packet.binary ?? packet.data
-        );
+        let data = "Unknown copy action.";
+        switch (id) {
+            case "copy": data = packet.data; break;
+            case "copy-raw": data = packet.binary ?? packet.data; break;
+            case "copy-name": data = packet.packetName; break;
+            case "copy-id": data = packet.packetId.toString(); break;
+            case "copy-header":
+                data = `// CmdId: ${packet.packetId}\n// Obf: ${packet.packetName}`;
+                break;
+        }
+        await navigator.clipboard.writeText(data);
     } catch (error) {
         alert("Failed to copy packet to clipboard.");
         console.error("Failed to copy packet to clipboard.", error);
@@ -450,6 +463,10 @@ function PacketVisualizer() {
             >
                 <Item id={"copy"} onClick={copyPacket}>Copy</Item>
                 <Item id={"copy-raw"} onClick={copyPacket}>Copy Binary Data</Item>
+                <Separator />
+                <Item id={"copy-name"} onClick={copyPacket}>Copy Name</Item>
+                <Item id={"copy-id"} onClick={copyPacket}>Copy ID</Item>
+                <Item id={"copy-header"} onClick={copyPacket}>Copy as Header</Item>
             </Menu>
         </div>
     );

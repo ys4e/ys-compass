@@ -1,5 +1,5 @@
 .Packet {
-    @apply flex flex-row text-white-100;
+    @apply flex flex-row text-white-100 select-none;
 
     span {
         @apply px-2 flex h-full items-center justify-center;
