@@ -281,7 +281,7 @@ function PacketVisualizer() {
 
     useEffect(() => {
         if (!lockScroll) return;
-        listRef.current?.scrollToItem(packets.length - 1, "end");
+        listRef.current?.scrollToItem(packets.length, "end");
     }, [packets]);
 
     useEffect(() => {
