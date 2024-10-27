@@ -5,8 +5,7 @@ import { Item, ItemParams, Menu, Separator } from "react-contexify";
 import AutoSizer from "react-virtualized-auto-sizer";
 import classNames from "classnames";
 
-import { FaUpload } from "react-icons/fa";
-import { IoMdArrowDown, IoMdClose, IoMdSave } from "react-icons/io";
+import { IoMdArrowDown, IoMdClose, IoMdCloudUpload, IoMdSave } from "react-icons/io";
 
 import Button from "@components/Button.tsx";
 import JSONEditor from "@components/JSONEditor.tsx";
@@ -215,7 +214,7 @@ function PacketList(props: IListProps) {
     return (
         <FixedSizeList
             ref={props.listRef}
-            height={props.height} width={props.width}
+            height={props.height - 82} width={props.width}
             itemSize={34} itemCount={packets.length}
         >
             { ({ index, style }) => (
@@ -257,7 +256,7 @@ function PacketVisualizer() {
 
     const config = useConfig();
     const { height: viewportHeight } = useViewport();
-    const { packets, clear } = usePacketList(config.server_address);
+    const { packets, push, clear } = usePacketList(config.server_address);
 
     /// <editor-fold desc="Resize functions">
     const onMouseMove = (event: MouseEvent) => {
@@ -355,6 +354,7 @@ function PacketVisualizer() {
                                 const file = upload.files?.[0];
                                 if (!file) {
                                     console.error("No file selected.");
+                                    upload.remove();
                                     return;
                                 }
 
@@ -363,6 +363,7 @@ function PacketVisualizer() {
                                     const contents = evt.target?.result;
                                     if (!contents) {
                                         console.error("Failed to read file contents.");
+                                        upload.remove();
                                         return;
                                     }
 
@@ -375,10 +376,14 @@ function PacketVisualizer() {
                                         setSelected(undefined);
 
                                         // Add the new packets.
-                                        packets.push(...data);
+                                        data.forEach(push);
+
+                                        console.log(`Loaded ${data.length} packets!`);
                                     } else {
                                         alert("Packet captures are not yet supported!");
                                     }
+
+                                    upload.remove();
                                 };
 
                                 // Check the file type.
@@ -392,7 +397,7 @@ function PacketVisualizer() {
                             upload.click();
                         }}
                     >
-                        <FaUpload />
+                        <IoMdCloudUpload />
                     </Button>
 
                     <Button

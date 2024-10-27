@@ -14,6 +14,7 @@ type PacketMessage = {
 
 interface PacketHook {
     packets: Packet[];
+    push: (packet: Packet) => void;
     clear: () => void;
 }
 
@@ -65,7 +66,7 @@ function usePacketList(server: ServerAddress): PacketHook {
     }, []);
 
     return {
-        packets,
+        packets, push,
         clear: () => setPackets([])
     };
 }
