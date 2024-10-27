@@ -247,7 +247,7 @@ function PacketVisualizer() {
     const [jsonContent, setContent] = useState<unknown | undefined>(undefined);
     const [editorWidth, setEditorWidth] = useState<number>(30);
     const [lockScroll, setLockScroll] = useState<boolean>(false);
-    const [searchBoth, setSearchBoth] = useState<boolean>(false);
+    const [searchBoth, setSearchBoth] = useState<boolean>(true);
 
     const [filteredPackets, setFilteredPackets] = useState<PacketType[]>([]);
     const [nameFilter, setNameFilter] = useState<string | undefined>(undefined);
