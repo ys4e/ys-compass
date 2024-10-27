@@ -5,6 +5,7 @@ import { Item, ItemParams, Menu, Separator } from "react-contexify";
 import AutoSizer from "react-virtualized-auto-sizer";
 import classNames from "classnames";
 
+import { FaUpload } from "react-icons/fa";
 import { IoMdArrowDown, IoMdClose, IoMdSave } from "react-icons/io";
 
 import Button from "@components/Button.tsx";
@@ -13,12 +14,12 @@ import Packet from "@components/visualizer/Packet.tsx";
 
 import useConfig from "@stores/config.ts";
 
+import useViewport from "@hooks/useViewport.ts";
 import usePacketList from "@hooks/usePacketList.ts";
 
 import type { Packet as PacketType } from "@backend/types.ts";
 
 import "@css/pages/PacketVisualizer.scss";
-import useViewport from "@hooks/useViewport.ts";
 
 /// <editor-fold desc="Filtering">
 type ComplexFilters = {
@@ -341,6 +342,57 @@ function PacketVisualizer() {
                         tooltip={"Save all packets as a JSON file"}
                     >
                         <IoMdSave />
+                    </Button>
+
+                    <Button
+                        id={"visualizer-load"}
+                        className={"bg-aqua hover:brightness-150"}
+                        onClick={() => {
+                            const upload = document.createElement("input");
+                            upload.type = "file";
+
+                            upload.addEventListener("change", () => {
+                                const file = upload.files?.[0];
+                                if (!file) {
+                                    console.error("No file selected.");
+                                    return;
+                                }
+
+                                const reader = new FileReader();
+                                reader.onload = evt => {
+                                    const contents = evt.target?.result;
+                                    if (!contents) {
+                                        console.error("Failed to read file contents.");
+                                        return;
+                                    }
+
+                                    if (typeof contents === "string") {
+                                        // This is likely a JSON string.
+                                        const data = JSON.parse(contents) as PacketType[];
+
+                                        // Clear the current packets.
+                                        clear();
+                                        setSelected(undefined);
+
+                                        // Add the new packets.
+                                        packets.push(...data);
+                                    } else {
+                                        alert("Packet captures are not yet supported!");
+                                    }
+                                };
+
+                                // Check the file type.
+                                if (file.name.endsWith(".json")) {
+                                    reader.readAsText(file);
+                                } else {
+                                    reader.readAsArrayBuffer(file);
+                                }
+                            });
+
+                            upload.click();
+                        }}
+                    >
+                        <FaUpload />
                     </Button>
 
                     <Button
