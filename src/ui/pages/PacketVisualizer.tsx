@@ -199,11 +199,15 @@ function Labels() {
 interface IListProps {
     listRef: MutableRefObject<FixedSizeList | null>;
     height: number;
+    viewportHeight: number;
     width: number;
     packets: PacketType[];
     setSelected: (index: number) => void;
     setContent: (data: unknown) => void;
     selected: number | undefined;
+
+    withPadding?: boolean;
+    filterShown?: boolean;
 
     isFiltered?: boolean;
 }
@@ -211,26 +215,38 @@ interface IListProps {
 function PacketList(props: IListProps) {
     const { packets } = props;
 
+    let padding = props.withPadding ? 82 : 0;
+    if (props.filterShown) {
+        padding += props.viewportHeight * 0.3 + 35;
+    }
+
     return (
         <FixedSizeList
-            ref={props.listRef}
-            height={props.height - 82} width={props.width}
+            ref={(ref) => {
+                if (props.isFiltered) return;
+
+                props.listRef.current = ref;
+            }}
+            height={props.height - padding} width={props.width}
             itemSize={34} itemCount={packets.length}
         >
-            { ({ index, style }) => (
-                <Packet
+            { ({ index, style }) => {
+                const data = packets[index];
+                const usedIndex = data.index ?? index;
+
+                return <Packet
                     onClick={() => {
                         if (props.isFiltered) {
-                            props.listRef.current?.scrollToItem(index, "start");
+                            props.listRef.current?.scrollToItem(usedIndex, "start");
                         }
-                        props.setSelected(index);
-                        props.setContent(JSON.parse(packets[index].data));
+                        props.setSelected(usedIndex);
+                        props.setContent(JSON.parse(data.data));
                     }}
-                    index={index} style={style}
-                    selected={!props.isFiltered && index == props.selected}
-                    data={packets[index]}
-                />
-            ) }
+                    index={usedIndex} style={style}
+                    selected={usedIndex == props.selected}
+                    data={data}
+                />;
+            } }
         </FixedSizeList>
     );
 }
@@ -456,6 +472,7 @@ function PacketVisualizer() {
                             {({ width }) => (
                                 <PacketList
                                     listRef={listRef}
+                                    viewportHeight={viewportHeight}
                                     height={viewportHeight * 0.3} // 30% of the screen height.
                                     width={width}
                                     packets={filteredPackets}
@@ -463,6 +480,7 @@ function PacketVisualizer() {
                                     setContent={setContent}
                                     selected={selected}
                                     isFiltered={true}
+                                    withPadding={false}
                                 />
                             )}
                         </AutoSizer>
@@ -478,11 +496,14 @@ function PacketVisualizer() {
                         <PacketList
                             listRef={listRef}
                             height={height}
+                            viewportHeight={viewportHeight}
                             width={width}
                             packets={packets}
                             setSelected={setSelected}
                             setContent={setContent}
                             selected={selected}
+                            withPadding={true}
+                            filterShown={jsonFilter != undefined || nameFilter != undefined}
                         />
                     )}
                 </AutoSizer>

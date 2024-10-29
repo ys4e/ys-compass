@@ -21,7 +21,10 @@ interface PacketHook {
 function usePacketList(server: ServerAddress): PacketHook {
     const [packets, setPackets] = useState<Packet[]>([]);
 
-    const push = (packet: Packet) => setPackets((packets) => [...packets, packet]);
+    const push = (packet: Packet) => setPackets((packets) => {
+        packet.index = packets.length;
+        return [...packets, packet];
+    });
 
     useEffect(() => {
         const ws = new WebSocket(`ws://${server}`);
