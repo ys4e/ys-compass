@@ -26,3 +26,7 @@ body {
 span {
     font-family: "Open Sans", sans-serif;
 }
+
+#app {
+    @apply h-screen w-full !bg-cover;
+}

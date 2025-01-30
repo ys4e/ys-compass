@@ -1,0 +1,8 @@
+{
+  "identifier": "filesystem",
+  "description": "capabilities for accessing the file system",
+  "local": true,
+  "windows": ["main"],
+  "permissions": [
+  ]
+}

@@ -7,14 +7,14 @@ import classNames from "classnames";
 
 import { IoMdArrowDown, IoMdClose, IoMdCloudUpload, IoMdSave } from "react-icons/io";
 
-import Button from "@components/Button.tsx";
+import Button from "@components/common/Button.tsx";
 import JSONEditor from "@components/JSONEditor.tsx";
 import Packet from "@components/visualizer/Packet.tsx";
 
 import useConfig from "@stores/config.ts";
 
-import useViewport from "@hooks/useViewport.ts";
-import usePacketList from "@hooks/usePacketList.ts";
+import useViewport from "@hooks/visualizer/useViewport.ts";
+import usePacketList from "@hooks/visualizer/usePacketList.ts";
 
 import type { Packet as PacketType } from "@backend/types.ts";
 
@@ -74,7 +74,7 @@ function packetFilter(
     }
 
     // Parse the filters and do the comparison.
-    let parsed: any | undefined = undefined;
+    let parsed: any | undefined;
     try {
         parsed = JSON.parse(parsedFilter);
     } catch (e) {
@@ -468,7 +468,7 @@ function PacketVisualizer() {
                     <div className={"flex flex-col bg-black-900 border-b-white border-b-2"}>
                         <Labels />
 
-                        <AutoSizer>
+                        <AutoSizer disableWidth={false} disableHeight={false}>
                             {({ width }) => (
                                 <PacketList
                                     listRef={listRef}
@@ -491,7 +491,7 @@ function PacketVisualizer() {
 
                 <Labels />
 
-                <AutoSizer>
+                <AutoSizer disableWidth={false} disableHeight={false}>
                     {({ height, width }) => (
                         <PacketList
                             listRef={listRef}
