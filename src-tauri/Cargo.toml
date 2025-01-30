@@ -1,25 +1,46 @@
 [package]
 name = "ys-compass"
 version = "0.1.0"
-description = "A user interface for Open Shen"
+description = "A user interface for Yuan Shen"
 authors = ["KingRainbow44"]
 license = "MIT"
-repository = "https://github.com/KingRainbow44/YS-Compass"
+repository = "https://github.com/ys4e/ys-compass"
 edition = "2021"
 rust-version = "1.60"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.5.4", features = [] }
+
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
+
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.7.2", features = [] }
+tauri = { version = "2", features = [] }
 
 [features]
+
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
 # DO NOT REMOVE!!
 custom-protocol = [ "tauri/custom-protocol" ]
+
+### The following are from Tauri's 'Cargo Configuration' page.
+### See: https://v2.tauri.app/concept/size
+
+[profile.dev]
+
+incremental = true # Compile your binary in smaller steps.
+rustflags = ["-Zthreads=8"] # Better compile performance.
+
+[profile.release]
+
+codegen-units = 1 # Allows LLVM to perform better optimization.
+lto = true # Enables link-time-optimizations.
+opt-level = "s" # Prioritizes small binary size. Use `3` if you prefer speed.
+panic = "abort" # Higher performance by disabling panic handlers.
+strip = true # Ensures debug symbols are removed.
+trim-paths = "all" # Removes potentially privileged information from your binaries.
+rustflags = ["-Cdebuginfo=0", "-Zthreads=8"] # Better compile performance.
