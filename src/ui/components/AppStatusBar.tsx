@@ -18,7 +18,7 @@ function AppStatusBar() {
                     className={"StatusBar__Button"}
                     onClick={() => viewWindow.getCurrentWindow().minimize()}
                 >
-                    <Minus color={"white"} size={18} />
+                    <Minus color={"white"} strokeWidth={2.5} size={18} />
                 </div>
 
                 <div
@@ -26,7 +26,7 @@ function AppStatusBar() {
                     className={"StatusBar__Button"}
                     onClick={() => invoke("window__close")}
                 >
-                    <X color={"white"} size={18} />
+                    <X color={"white"} strokeWidth={2.5} size={18} />
                 </div>
             </div>
         </div>
