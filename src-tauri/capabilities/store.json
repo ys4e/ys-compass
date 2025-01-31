@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "store",
+  "description": "capabilities for storing data",
+  "local": true,
+  "windows": ["main"],
+  "permissions": [
+    "store:allow-load",
+    "store:allow-save",
+    "store:allow-get",
+    "store:allow-set"
+  ]
+}

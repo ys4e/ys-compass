@@ -24,13 +24,16 @@ serde = { version = "1.0", features = ["derive"] }
 
 # Tauri & Plugins
 tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-log = "2"
+tauri-plugin-store = "2"
 
 # Developer Tools
 regex = "1.11"
-log = { version = "0.4", features = [] }
+log = "0.4"
 lazy_static = "1.5"
 anyhow = "1"
 dotenv_codegen = "0.15"
+time = "0.3"
 
 # HTTP client
 reqwest = "0.12"

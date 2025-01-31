@@ -52,6 +52,7 @@
         "fullscreen": false,
         "resizable": false,
         "decorations": false,
+        "transparent": true,
         "height": 720,
         "title": "Yuan Shen Compass",
         "width": 1280

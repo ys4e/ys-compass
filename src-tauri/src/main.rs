@@ -8,6 +8,7 @@ extern crate dotenv_codegen;
 use std::fs;
 use anyhow::Result;
 use tauri::{generate_handler, AppHandle, Manager};
+use tauri_plugin_log::TimezoneStrategy;
 
 mod window;
 mod utils;
@@ -27,8 +28,23 @@ fn setup_app(app_handle: &AppHandle) -> Result<()> {
     Ok(())
 }
 
+// noinspection RsUnnecessaryQualifications
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_log::Builder::new()
+            .format(|consumer, message, record| {
+                let time = time::format_description::parse("[hour]:[minute]:[second]")
+                    .unwrap();
+                consumer.finish(format_args!(
+                    "[{}] [{}] [{}]: {}",
+                    TimezoneStrategy::UseLocal.get_now().format(&time).unwrap(),
+                    record.level(),
+                    record.target(),
+                    message
+                ));
+            })
+            .build())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(generate_handler![
             window::window__close,
             appearance::appearance__background,
@@ -39,8 +55,6 @@ fn main() {
 
             Ok(())
         })
-        // warning! this method slows down code intellisense...
-        // as in like a lot...
-        .run(tauri::generate_context!())
+        .run(utils::build_context())
         .expect("error while running tauri application");
 }

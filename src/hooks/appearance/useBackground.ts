@@ -11,7 +11,7 @@ function useBackground() {
 
         // On initialize, grab the first cached background image.
         (async () => {
-            setPath(await Appearance.getBackgroundImage(true))
+            setPath(await Appearance.getBackgroundImage(true));
         })();
     }, []);
 
