@@ -1,4 +1,4 @@
-import { JSX, MouseEvent } from "react";
+import { CSSProperties, JSX, MouseEvent } from "react";
 
 import "@css/components/Button.scss";
 
@@ -8,8 +8,10 @@ interface IProps {
 
     onClick?: (event: MouseEvent) => void;
 
+    style?: CSSProperties;
+
     tooltip?: string;
-    children?: JSX.Element | JSX.Element[] | undefined;
+    children?: JSX.Element | JSX.Element[] | string | undefined;
 }
 
 function Button(props: IProps) {
@@ -18,6 +20,7 @@ function Button(props: IProps) {
             id={props.id}
             title={props.tooltip}
             onClick={props.onClick}
+            style={props.style}
             className={`${props.className ?? ""} Button`}
         >
             {props.children}

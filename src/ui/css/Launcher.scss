@@ -1,0 +1,11 @@
+#page__launcher {
+    @apply flex h-screen w-full !bg-cover;
+}
+
+#sidebar {
+    @apply w-12;
+}
+
+#main-content {
+    @apply h-full;
+}

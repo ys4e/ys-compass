@@ -9,7 +9,7 @@ function AppStatusBar() {
     return (
         <div
             id={"status-bar"}
-            className={"flex w-full justify-end"}
+            className={"flex h-fit w-full justify-end"}
             data-tauri-drag-region={true}
         >
             <div id={"status-bar__buttons"}>

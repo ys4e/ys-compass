@@ -14,3 +14,11 @@ export type Packet = {
     index?: number; // A client-side index for ordering packets.
     binary?: string; // Base64-encoded raw packet data.
 };
+
+/**
+ * Color palette object.
+ */
+export type Colors = {
+    dark: boolean;
+    primary: string;
+};

@@ -24,9 +24,17 @@ body {
 }
 
 span {
-    font-family: "Open Sans", sans-serif;
+    font-family: Rubik, "Open Sans", sans-serif;
 }
 
-#app {
-    @apply h-screen w-full !bg-cover;
+button {
+    font-family: Rubik, "Open Sans", sans-serif;
+}
+
+/* Global utility classes. */
+
+.lifted {
+    box-shadow:
+        0 8px 16px 0 rgba(0, 0, 0, 0.2),
+        0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }

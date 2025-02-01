@@ -2,6 +2,10 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { error as logError } from "@tauri-apps/plugin-log";
 
 import Global from "@backend/Global.ts";
+import { Colors } from "@backend/types.ts";
+
+import tinycolor from "tinycolor2";
+import { FastAverageColor } from "fast-average-color";
 
 class Appearance {
     /**
@@ -54,6 +58,31 @@ class Appearance {
      */
     private static async getLastBackground(): Promise<string | undefined> {
         return await Global.getCacheStore().get<string>("last-background");
+    }
+
+    /**
+     * Calculates the average color of the background.
+     * This uses `fast-average-color`.
+     *
+     * The result is an object of different HEX colors to use.
+     */
+    public static async getColorScheme(path?: string | undefined): Promise<Colors> {
+        // Get the background image if it wasn't provided.
+        path ??= await Appearance.getBackgroundImage(true);
+
+        // Calculate the color of the image.
+        const calculator = new FastAverageColor();
+        const result = await calculator.getColorAsync(path);
+
+        // Saturate the color.
+        const wrapper = tinycolor(result.hex)
+            .saturate(20)
+            .lighten(35);
+
+        return {
+            dark: result.isDark,
+            primary: wrapper.toHexString(),
+        };
     }
 }
 
