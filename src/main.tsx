@@ -21,6 +21,6 @@ root.render(<RouterProvider router={router} />);
 
 // Configure PostHog for analytics.
 posthog.init(
-    "phc_VVD9XbDn9QBsXWfhJvrYxxRuE0LScyXK3JZzJpD3E",
+    import.meta.env.VITE_POSTHOG_TOKEN,
     { api_host: "https://us.i.posthog.com", person_profiles: "never" }
 );

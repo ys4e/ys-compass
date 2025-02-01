@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
     readonly MODE: string;
+    readonly VITE_POSTHOG_TOKEN: string;
+
     // more env variables...
 }
 
