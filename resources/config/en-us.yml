@@ -1,0 +1,29 @@
+---
+
+# Sniffer config
+sniffer:
+    # The name of the network interface to use.
+    #
+    # You will be asked to set this during the setup process.
+    # Once it is set, you can change it here.
+    device-name: ""
+    
+    # The packet capturing filter to use.
+    #
+    # If you don't know how to write filters, leave this default.
+    # In most scenarios, you won't need to change this.
+    filter: "udp portrange 22101-22102"
+    
+    # A list of ports that the server listens on.
+    #
+    # If you change the capture filter, you will likely need to change this too.
+    # This is used for determining which side sent a packet. (client/server)
+    server-ports:
+        - 22101
+        - 22102
+    
+    # The path to the 'known seeds' file.
+    #
+    # This file should be readable and writable.
+    # It contains all encryption seeds used recently.
+    seeds-file: "$APPDATA/sniffer/known-seeds.txt"
