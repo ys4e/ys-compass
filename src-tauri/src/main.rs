@@ -1,4 +1,4 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![windows_subsystem = "windows"]
 
 #![feature(once_cell_get_mut)]
 #![allow(non_snake_case)]
@@ -40,6 +40,18 @@ fn setup_app() -> Result<()> {
 
     // Initialize the configuration.
     drop(Config::get());
+
+    // If we are compiling for Windows, we should allocate a console.
+    #[cfg(windows)]
+    unsafe {
+        use windows::Win32::System::Console::{AllocConsole, AttachConsole, ATTACH_PARENT_PROCESS};
+
+        // Check if the console is already attached.
+        if AttachConsole(ATTACH_PARENT_PROCESS).is_err() {
+            // Otherwise, allocate a new console.
+            AllocConsole()?;
+        }
+    }
 
     Ok(())
 }
