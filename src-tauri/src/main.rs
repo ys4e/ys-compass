@@ -41,18 +41,6 @@ fn setup_app() -> Result<()> {
     // Initialize the configuration.
     drop(Config::get());
 
-    // If we are compiling for Windows, we should allocate a console.
-    #[cfg(windows)]
-    unsafe {
-        use windows::Win32::System::Console::{AllocConsole, AttachConsole, ATTACH_PARENT_PROCESS};
-
-        // Check if the console is already attached.
-        if AttachConsole(ATTACH_PARENT_PROCESS).is_err() {
-            // Otherwise, allocate a new console.
-            AllocConsole()?;
-        }
-    }
-
     Ok(())
 }
 
@@ -69,6 +57,21 @@ fn main() {
     if let Err(error) = setup_app() {
         eprintln!("Failed to setup application: {:#?}", error);
         return;
+    }
+
+    // If we are compiling for Windows, we should allocate a console.
+    #[cfg(windows)]
+    unsafe {
+        use windows::Win32::System::Console::{AllocConsole, AttachConsole, ATTACH_PARENT_PROCESS};
+
+        // Check if any arguments were passed.
+        let args: Vec<String> = std::env::args().collect();
+
+        // Check if the console is already attached.
+        if args.len() > 1 && AttachConsole(ATTACH_PARENT_PROCESS).is_err() {
+            // Otherwise, allocate a new console.
+            AllocConsole().unwrap();
+        }
     }
 
     // Run command-line argument parser.
