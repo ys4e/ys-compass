@@ -10,6 +10,13 @@ repository = "https://github.com/ys4e/ys-compass"
 edition = "2021"
 rust-version = "1.60"
 
+[package.metadata.i18n]
+
+# Configuration options for `rust-i18n`
+available-locales = ["en", "zh-cn"]
+default-locale = "en"
+load-path = "../resources/lang"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
@@ -43,6 +50,7 @@ dotenv_codegen = "0.15"
 time = "0.3"
 dirs = "6"
 crossbeam-channel = "0.5"
+rust-i18n = "3"
 
 # Console application
 sys-locale = "0.3"

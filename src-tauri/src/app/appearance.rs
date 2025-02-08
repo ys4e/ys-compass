@@ -89,7 +89,7 @@ pub async fn appearance__background(app_handle: AppHandle) -> Result<String, &'s
     let Some(url) = backgrounds[0]["background"]["url"].as_str() else {
         return Err("Failed to extract background URL.");
     };
-    
+
     // Step 3. Extract the file name from the URL & query for data.
     let file_name = FILE_NAME_REGEX.captures(url)
         .and_then(|c| c.get(1))
@@ -108,7 +108,7 @@ pub async fn appearance__background(app_handle: AppHandle) -> Result<String, &'s
 
         fs::write(&file, bytes).unwrap();
     }
-    
+
     match file.to_str() {
         Some(path) => Ok(path.to_string()),
         None => Err("Failed to resolve background path."),

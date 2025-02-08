@@ -2,7 +2,7 @@ use std::fs::File;
 use std::sync::{OnceLock, Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 use anyhow::{anyhow, Result};
-use crate::{utils, LANGUAGE};
+use crate::{utils, SYSTEM_LANGUAGE};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Language {
@@ -16,6 +16,14 @@ impl Language {
         match locale.to_lowercase().as_str() {
             "zh-cn" | "zh-hk" => Language::Chinese,
             _ => Language::English
+        }
+    }
+
+    /// Converts the language to a locale string.
+    pub fn to_locale(&self) -> &'static str {
+        match self {
+            Language::English => "en-US",
+            Language::Chinese => "zh-CN"
         }
     }
 
@@ -80,6 +88,14 @@ pub fn config__get() -> Config {
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Debug, Clone)]
 pub struct Config {
+    /// The application language.
+    ///
+    /// This is always used, regardless of the default system language.
+    #[serde(default = "Config::default_language")]
+    pub language: String,
+
+    /// The configuration for the packet sniffer.
+    #[serde(default)]
     pub sniffer: Sniffer
 }
 
@@ -90,10 +106,17 @@ impl Config {
     pub fn get<'a>() -> MutexGuard<'a, Config> {
         static CONFIG: OnceLock<Mutex<Config>> = OnceLock::new();
         let mutex = CONFIG.get_or_init(|| {
-            Mutex::new(deserialize(*LANGUAGE).unwrap())
+            Mutex::new(deserialize(*SYSTEM_LANGUAGE).unwrap())
         });
 
         mutex.lock().unwrap()
+    }
+
+    /// Returns the default language.
+    ///
+    /// This is based on the system's language.
+    fn default_language() -> String {
+        SYSTEM_LANGUAGE.to_locale().to_string()
     }
 }
 

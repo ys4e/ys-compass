@@ -1,0 +1,8 @@
+_version: 1
+
+# Backend Error Messages
+backend.tauri.emit.error: "Error while emitting event to the frontend."
+
+# Launcher Home Page
+launcher.home.game.play: "Start Game"
+launcher.home.game.update: "Update Game"

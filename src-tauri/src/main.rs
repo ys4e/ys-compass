@@ -4,6 +4,10 @@
 #[macro_use]
 extern crate dotenv_codegen;
 
+#[macro_use]
+extern crate rust_i18n;
+
+use std::collections::HashMap;
 use std::fs;
 use anyhow::Result;
 use clap::Command;
@@ -18,13 +22,20 @@ mod config;
 mod app;
 mod window;
 mod capabilities;
+mod events;
 
 use crate::app::appearance;
 use crate::config::{Config, Language};
 
+// Generate the translation function.
+i18n!(
+    "../resources/lang",
+    fallback = "en-us"
+);
+
 lazy_static! {
     /// The system default language, wrapped in an enum for the supported application languages.
-    static ref LANGUAGE: Language = Language::from_locale(utils::system_locale());
+    static ref SYSTEM_LANGUAGE: Language = Language::from_locale(utils::system_locale());
 }
 
 /// Global function used by both console and desktop
@@ -39,7 +50,10 @@ fn setup_app() -> Result<()> {
     }
 
     // Initialize the configuration.
-    drop(Config::get());
+    let config = Config::get();
+
+    // Set the language.
+    rust_i18n::set_locale(&config.language);
 
     Ok(())
 }
@@ -105,6 +119,26 @@ async fn main() {
     }
 }
 
+/// Translates the given key into a localized string.
+#[tauri::command]
+fn translate(key: String, args: Option<HashMap<String, String>>) -> String {
+    let message = t!(key);
+
+    // If no arguments were provided, return the message as-is.
+    if args.is_none() {
+        return message.to_string();
+    }
+
+    // Otherwise, replace the arguments in the message.
+    let args = args.unwrap();
+    let mut message = message.to_string();
+    for (key, value) in args {
+        message = message.replace(&format!("%{{{}}}", key), &value);
+    }
+
+    message
+}
+
 /// Prepares the application for use.
 ///
 /// This is exclusive to the desktop application.
@@ -131,6 +165,7 @@ fn run_tauri_app() {
             .build())
         .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(generate_handler![
+            translate,
             config::config__get,
             window::window__close,
             appearance::appearance__background,

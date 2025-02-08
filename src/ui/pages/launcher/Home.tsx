@@ -2,6 +2,7 @@ import Button from "@components/common/Button.tsx";
 import useColorScheme from "@hooks/appearance/useColorScheme.ts";
 import classNames from "classnames";
 import { RefreshCw } from "lucide-react";
+import Text from "@components/common/Text.tsx";
 
 function Home() {
     const colors = useColorScheme();
@@ -28,7 +29,7 @@ function Home() {
                         console.log("Button clicked!");
                     }}
                 >
-                    {"Update Game"}
+                    <Text>launcher.home.game.play</Text>
 
                     <RefreshCw size={22} />
                 </Button>
