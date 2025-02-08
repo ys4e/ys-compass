@@ -86,9 +86,14 @@ class Appearance {
         const result = await calculator.getColorAsync(path);
 
         // Saturate the color.
-        const wrapper = tinycolor(result.hex)
-            .saturate(20)
-            .lighten(35);
+        let wrapper = tinycolor(result.hex)
+            .saturate(20);
+
+        if (result.isDark) {
+            wrapper = wrapper.lighten(20);
+        } else {
+            wrapper = wrapper.darken(20);
+        }
 
         return {
             dark: result.isDark,
