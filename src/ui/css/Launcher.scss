@@ -1,5 +1,9 @@
 #page__launcher {
-    @apply flex h-screen w-full !bg-cover;
+    @apply z-0 flex h-screen w-full;
+
+    background-size: cover !important;
+
+    box-shadow: inset 25px 30px 40px rgba(0, 0, 0, 0.5);
 }
 
 #sidebar {
