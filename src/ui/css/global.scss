@@ -17,6 +17,16 @@ html {
     --contexify-activeRightSlot-color: #fff;
     --contexify-arrow-color: #6f6e77;
     --contexify-activeArrow-color: #fff;
+
+    /* Theme colors. (default = dark) */
+
+    --text-primary: #000000;
+    --text-secondary: #f1f1f1;
+}
+
+html[data-theme="light"] {
+    --text-primary: #f1f1f1;
+    --text-secondary: #000000;
 }
 
 body {

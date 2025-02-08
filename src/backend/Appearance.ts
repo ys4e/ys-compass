@@ -51,6 +51,17 @@ class Appearance {
     }
 
     /**
+     * Sets the theme of the application.
+     *
+     * @param theme The theme to set the application to.
+     */
+    public static setTheme(theme: "dark" | "light"): void {
+        document
+            .getElementsByTagName("html")[0]
+            .setAttribute("data-theme", theme);
+    }
+
+    /**
      * Returns the path to the last background image.
      * Returns undefined if no background image was found.
      *
