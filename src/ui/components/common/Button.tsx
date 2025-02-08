@@ -2,6 +2,8 @@ import { CSSProperties, JSX, MouseEvent } from "react";
 
 import "@css/components/Button.scss";
 
+type AllowedChildren = JSX.Element | string | undefined;
+
 interface IProps {
     id?: string;
     className?: string;
@@ -11,7 +13,7 @@ interface IProps {
     style?: CSSProperties;
 
     tooltip?: string;
-    children?: JSX.Element | JSX.Element[] | string | undefined;
+    children?: AllowedChildren | AllowedChildren[];
 }
 
 function Button(props: IProps) {
