@@ -7,6 +7,11 @@
     src: url(/fonts/Rubik.ttf);
 }
 
+@font-face {
+    font-family: Inter;
+    src: url(/fonts/Inter.ttf);
+}
+
 html {
     --contexify-menu-bgColor: rgba(40,40,40,.98);
     --contexify-separator-color: #4c4c4c;
@@ -34,11 +39,11 @@ body {
 }
 
 span {
-    font-family: Rubik, "Open Sans", sans-serif;
+    font-family: Inter, "Open Sans", sans-serif;
 }
 
 button {
-    font-family: Rubik, "Open Sans", sans-serif;
+    font-family: Inter, "Open Sans", sans-serif;
 }
 
 /* Global utility classes. */
