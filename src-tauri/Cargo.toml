@@ -23,10 +23,15 @@ serde_json = "1.0"
 serde_yml = "0.0.12"
 serde = { version = "1.0", features = ["derive"] }
 
+base64 = "0.22"
+
 # Tauri & Plugins
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-log = "2"
 tauri-plugin-store = "2"
+
+# Tokio asynchronous runtime
+tokio = { version = "1", features = ["full"] }
 
 # Developer Tools
 regex = "1.11"
@@ -37,16 +42,20 @@ anyhow = "1"
 dotenv_codegen = "0.15"
 time = "0.3"
 dirs = "6"
+crossbeam-channel = "0.5"
 
 # Console application
 sys-locale = "0.3"
 clap = "4.5"
+dialoguer = { version = "0.11", features = ["history"] }
 
 # HTTP client
 reqwest = "0.12"
 
 # ys4e tools
-ys-sniffer = { path = "../../ys-sniffer" }
+ys-sniffer = { path = "../../ys-sniffer", features = ["tokio"] }
+
+pcap = "2.2"
 
 [target.'cfg(windows)'.dependencies]
 

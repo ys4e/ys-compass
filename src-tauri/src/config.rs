@@ -72,7 +72,13 @@ pub fn default_config(language: Language) -> Result<Config> {
     Ok(serde_yml::from_str(default_config)?)
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Debug)]
+/// Creates a copy of the current config state.
+#[tauri::command]
+pub fn config__get() -> Config {
+    Config::get().clone()
+}
+
+#[derive(Serialize, Deserialize, Default, PartialEq, Debug, Clone)]
 pub struct Config {
     pub sniffer: Sniffer
 }
@@ -91,7 +97,7 @@ impl Config {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct Sniffer {
     /// The name of the network interface to use.

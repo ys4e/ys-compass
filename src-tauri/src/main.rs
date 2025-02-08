@@ -1,5 +1,3 @@
-#![windows_subsystem = "windows"]
-
 #![feature(once_cell_get_mut)]
 #![allow(non_snake_case)]
 
@@ -13,12 +11,13 @@ use lazy_static::lazy_static;
 use log::info;
 use tauri::{generate_handler, AppHandle};
 use tauri_plugin_log::TimezoneStrategy;
+use tokio::runtime::Handle;
 
-mod window;
 mod utils;
-mod app;
-mod capabilities;
 mod config;
+mod app;
+mod window;
+mod capabilities;
 
 use crate::app::appearance;
 use crate::config::{Config, Language};
@@ -36,6 +35,7 @@ fn setup_app() -> Result<()> {
     if !app_data_dir.exists() {
         fs::create_dir_all(&app_data_dir)?;
         fs::create_dir(app_data_dir.join("cache"))?;
+        fs::create_dir(app_data_dir.join("dumps"))?;
     }
 
     // Initialize the configuration.
@@ -52,25 +52,28 @@ fn clap() -> Command {
             .about("Runs the packet sniffer according to the config"))
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // Run the application setup function.
     if let Err(error) = setup_app() {
         eprintln!("Failed to setup application: {:#?}", error);
         return;
     }
 
-    // If we are compiling for Windows, we should allocate a console.
+    // If we are compiling for Windows, we should remove the console if it exists.
     #[cfg(windows)]
     unsafe {
-        use windows::Win32::System::Console::{AllocConsole, AttachConsole, ATTACH_PARENT_PROCESS};
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::System::Console::{GetConsoleWindow, FreeConsole};
 
         // Check if any arguments were passed.
         let args: Vec<String> = std::env::args().collect();
 
-        // Check if the console is already attached.
-        if args.len() > 1 && AttachConsole(ATTACH_PARENT_PROCESS).is_err() {
-            // Otherwise, allocate a new console.
-            AllocConsole().unwrap();
+        // Check if the console is attached.
+        let window_handle: HWND = GetConsoleWindow();
+        if args.len() <= 1 && !window_handle.is_invalid() {
+            // Remove it if it is.
+            FreeConsole().unwrap();
         }
     }
 
@@ -79,6 +82,9 @@ fn main() {
     let matches = matches.subcommand();
 
     if matches.is_none() {
+        // Set the Tauri async runtime.
+        tauri::async_runtime::set(Handle::current());
+
         // Run the desktop app if no sub-command was provided.
         run_tauri_app();
         return;
@@ -92,7 +98,8 @@ fn main() {
 
     match matches {
         Some(("sniff", _)) => {
-            info!("running the sniffer...");
+            info!("Type 'help' for a list of commands.");
+            capabilities::sniffer::run_cli().await;
         }
         _ => panic!("unimplemented command")
     }
@@ -124,6 +131,7 @@ fn run_tauri_app() {
             .build())
         .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(generate_handler![
+            config::config__get,
             window::window__close,
             appearance::appearance__background,
             appearance::appearance__default_splash
