@@ -23,6 +23,7 @@ mod app;
 mod window;
 mod capabilities;
 mod events;
+mod system;
 
 use crate::app::appearance;
 use crate::config::{Config, Language};
@@ -54,6 +55,11 @@ fn setup_app() -> Result<()> {
 
     // Set the language.
     rust_i18n::set_locale(&config.language);
+    
+    // If the launcher should elevate, do so now.
+    if config.launcher.always_elevate && !system::is_elevated() {
+        system::elevate()?;
+    }
 
     Ok(())
 }

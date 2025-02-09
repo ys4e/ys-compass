@@ -93,6 +93,10 @@ pub struct Config {
     /// This is always used, regardless of the default system language.
     #[serde(default = "Config::default_language")]
     pub language: String,
+    
+    /// The configuration used for the launcher.
+    #[serde(default)]
+    pub launcher: Launcher,
 
     /// The configuration for the packet sniffer.
     #[serde(default)]
@@ -120,7 +124,7 @@ impl Config {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct Sniffer {
     /// The name of the network interface to use.
@@ -146,4 +150,33 @@ pub struct Sniffer {
     /// This file should be readable and writable.\
     /// It contains all encryption seeds used recently.
     pub seeds_file: String
+}
+
+impl Default for Sniffer {
+    fn default() -> Self {
+        Sniffer {
+            device_name: String::new(),
+            filter: "udp portrange 22101-22102".to_string(),
+            server_ports: vec![22101, 22102],
+            seeds_file: "$APPDATA/sniffer/known-seeds.txt".to_string()
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct Launcher {
+    /// Whether to always elevate the launcher on start up or not.
+    /// 
+    /// The launcher might sometimes ask for 
+    /// elevation regardless to open the game.
+    pub always_elevate: bool
+}
+
+impl Default for Launcher {
+    fn default() -> Self {
+        Launcher {
+            always_elevate: true
+        }
+    }
 }

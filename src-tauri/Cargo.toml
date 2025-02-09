@@ -64,11 +64,22 @@ reqwest = "0.12"
 ys-sniffer = { path = "../../ys-sniffer", features = ["tokio"] }
 
 pcap = "2.2"
+winapi = "0.3.9"
 
 [target.'cfg(windows)'.dependencies]
 
 # Windows-specific dependencies
-windows = { version = "0.59", features = ["Win32_System_Console"] }
+windows = { version = "0.59", features = [
+    "Win32_System_Console", 
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Shell"
+] }
+is_elevated = "0.1"
+
+[target.'cfg(unix)'.dependencies]
+
+# UNIX-specific dependencies
+sudo = "0.6"
 
 [features]
 
