@@ -2,6 +2,7 @@ _version: 1
 
 # Backend Error Messages
 backend.tauri.emit.error: "Error while emitting event to the frontend."
+backend.path.error.appdata: "Failed to resolve application data path."
 
 # Launcher Home Page
 launcher.home.game.play: "Start Game"

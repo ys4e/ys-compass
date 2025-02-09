@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use ys_sniffer::{Config as SnifferConfig, GamePacket, PacketSource};
 use crate::config::{save_config, Config};
-use crate::utils;
+use crate::{system, utils};
 
 /// A struct wrapper that allows the device to be displayed.
 struct CaptureDevice(Device);
@@ -127,10 +127,18 @@ impl Display for Packet {
 pub async fn run_cli() {
     let mut config = Config::get();
 
+    // Resolve the seeds file.
+    let seeds_file = match system::resolve_path(&config.sniffer.seeds_file) {
+        Ok(path) => path.to_string_lossy().to_string(),
+        Err(_) => "known-seeds.txt".to_string()
+    };
+    
     // Prepare the sniffer configuration.
     let sniffer_config = SnifferConfig {
         device_name: Some(get_device(&mut config)),
-        ..Default::default()
+        known_seeds: seeds_file,
+        filter: Some(config.sniffer.filter.clone()),
+        server_port: config.sniffer.server_ports.clone(),
     };
 
     // Create the sending/receiving channel.

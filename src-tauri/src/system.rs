@@ -1,4 +1,6 @@
+use std::path::PathBuf;
 use anyhow::Result;
+use crate::utils;
 
 /// Encodes a string as a wide string.
 /// 
@@ -90,4 +92,20 @@ pub fn elevate() -> Result<()> {
         sudo::escalate_if_needed()?;
         Ok(())
     }
+}
+
+/// Resolves a path to an absolute path.
+/// 
+/// # Explanation
+/// 
+/// All paths resolve from the root, unless they are prefixed with a `$` character.
+/// 
+/// Aliases that are resolved properly:
+/// - `$APPDATA` - The application's data directory.
+pub fn resolve_path<S: AsRef<str>>(path: S) -> Result<PathBuf> {
+    Ok(PathBuf::from(
+        path.as_ref().to_string()
+            .replace("\\", "/")
+            .replace("$APPDATA", &utils::app_data_dir()?.to_string_lossy())
+    ))
 }
