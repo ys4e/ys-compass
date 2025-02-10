@@ -3,6 +3,8 @@ import useColorScheme from "@hooks/appearance/useColorScheme.ts";
 import classNames from "classnames";
 import { RefreshCw } from "lucide-react";
 import Text from "@components/common/Text.tsx";
+import { invoke } from "@tauri-apps/api/core";
+import { t } from "@backend/Language.ts";
 
 function Home() {
     const colors = useColorScheme();
@@ -25,8 +27,12 @@ function Home() {
                     style={{
                         backgroundColor: colors.primary,
                     }}
-                    onClick={() => {
-                        console.log("Button clicked!");
+                    onClick={async () => {
+                        try {
+                            await invoke("game__launch");
+                        } catch (error) {
+                            console.error(await t(error as string));
+                        }
                     }}
                 >
                     <Text>launcher.home.game.play</Text>

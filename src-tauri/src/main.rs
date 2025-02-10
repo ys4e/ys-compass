@@ -25,7 +25,7 @@ mod capabilities;
 mod events;
 mod system;
 
-use crate::app::appearance;
+use crate::app::{appearance, game};
 use crate::config::{Config, Language};
 
 // Generate the translation function.
@@ -55,7 +55,7 @@ fn setup_app() -> Result<()> {
 
     // Set the language.
     rust_i18n::set_locale(&config.language);
-    
+
     // If the launcher should elevate, do so now.
     if config.launcher.always_elevate && !system::is_elevated() {
         system::elevate()?;
@@ -91,7 +91,7 @@ async fn main() {
 
         // Check if the console is attached.
         let window_handle: HWND = GetConsoleWindow();
-        if args.len() <= 1 && !window_handle.is_invalid() {
+        if !cfg!(debug_assertions) && args.len() <= 1 && !window_handle.is_invalid() {
             // Remove it if it is.
             FreeConsole().unwrap();
         }
@@ -172,6 +172,7 @@ fn run_tauri_app() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(generate_handler![
             translate,
+            game::game__launch,
             config::config__get,
             window::window__close,
             appearance::appearance__background,

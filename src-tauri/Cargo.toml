@@ -48,12 +48,16 @@ lazy_static = "1.5"
 anyhow = "1"
 dotenv_codegen = "0.15"
 time = "0.3"
-dirs = "6"
 crossbeam-channel = "0.5"
 rust-i18n = "3"
 
-# Console application
+# System utilities
+dirs = "6"
+open = "5"
+sysinfo = "0.33"
 sys-locale = "0.3"
+
+# Console application
 clap = "4.5"
 dialoguer = { version = "0.11", features = ["history"] }
 
@@ -64,15 +68,20 @@ reqwest = "0.12"
 ys-sniffer = { path = "../../ys-sniffer", features = ["tokio"] }
 
 pcap = "2.2"
-winapi = "0.3.9"
 
 [target.'cfg(windows)'.dependencies]
 
 # Windows-specific dependencies
 windows = { version = "0.59", features = [
-    "Win32_System_Console", 
+    "Win32_System_Console",
     "Win32_UI_WindowsAndMessaging",
-    "Win32_UI_Shell"
+    "Win32_UI_Shell",
+    "Win32_System_Threading",
+    "Win32_Security",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Diagnostics_Debug"
 ] }
 is_elevated = "0.1"
 

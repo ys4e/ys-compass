@@ -2,7 +2,7 @@ use std::fs::File;
 use std::sync::{OnceLock, Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 use anyhow::{anyhow, Result};
-use crate::{utils, SYSTEM_LANGUAGE};
+use crate::{system, utils, SYSTEM_LANGUAGE};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Language {
@@ -93,10 +93,14 @@ pub struct Config {
     /// This is always used, regardless of the default system language.
     #[serde(default = "Config::default_language")]
     pub language: String,
-    
+
     /// The configuration used for the launcher.
     #[serde(default)]
     pub launcher: Launcher,
+
+    /// The configuration used for information about the game.
+    #[serde(default)]
+    pub game: Game,
 
     /// The configuration for the packet sniffer.
     #[serde(default)]
@@ -121,6 +125,146 @@ impl Config {
     /// This is based on the system's language.
     fn default_language() -> String {
         SYSTEM_LANGUAGE.to_locale().to_string()
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct Launcher {
+    /// Whether to always elevate the launcher on start up or not.
+    ///
+    /// The launcher might sometimes ask for
+    /// elevation regardless to open the game.
+    pub always_elevate: bool
+}
+
+impl Default for Launcher {
+    fn default() -> Self {
+        Launcher {
+            always_elevate: true
+        }
+    }
+}
+
+/// A game modification that can be injected into the game.
+pub enum Modification {
+    /// A modified version of 3DMigoto: a DX11 shader modding tool.
+    ///
+    /// The version used for this game is called [GIMI](https://github.com/SilentNightSound/GI-Model-Importer).
+    ///
+    /// This modification is managed by the application.
+    Migoto,
+
+    /// A general-purpose post-processing utility.
+    /// 
+    /// ReShade is readily available at [reshade.me](https://reshade.me);
+    /// 
+    /// This modification is managed by the application.
+    ReShade,
+    
+    /// A modding utility developed by `ys4e` for interacting with `ys-compass`.
+    /// 
+    /// This modification is always injected when playing on custom servers, and cannot be configured normally.
+    /// 
+    /// This modification is managed by the application.
+    YsHelper,
+    
+    /// This represents a DLL specified by the user.
+    UnmanagedDll(String)
+}
+
+impl Modification {
+    /// Parses the string into a modification.
+    /// 
+    /// Returns `None` if the modification is unknown.
+    pub fn from_raw(raw: &String) -> Option<Modification> {
+        match raw.to_lowercase().as_str() {
+            "3dmigoto" | "gimi" => Some(Modification::Migoto),
+            "reshade" => Some(Modification::ReShade),
+            "yshelper" => Some(Modification::YsHelper),
+            _ => {
+                if raw.starts_with("dll:") {
+                    Some(Modification::UnmanagedDll(raw[4..].to_string()))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+    
+    /// Returns the absolute path to the modification's DLL.
+    pub fn to_path(&self) -> Result<String> {
+        let path = match self {
+            Modification::Migoto => system::resolve_path("$APPDATA/mods/3DMigoto/d3d11.dll")?,
+            Modification::ReShade => system::resolve_path("$APPDATA/mods/ReShade/ReShade64.dll")?,
+            Modification::YsHelper => system::resolve_path("$APPDATA/mods/ys-helper.dll")?,
+            Modification::UnmanagedDll(path) => system::resolve_path(path)?
+        };
+        
+        Ok(path.to_string_lossy().to_string())
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct Game {
+    /// The absolute path to the game's executable.
+    ///
+    /// This is used to launch the game.
+    pub path: String,
+
+    /// A list of modifications to inject into the game.
+    ///
+    /// Valid, known examples:
+    /// - 3DMigoto/GIMI
+    /// - ReShade
+    ///
+    /// Absolute paths to DLLs can also be used when prefixed with `dll:`.
+    modifications: Vec<String>,
+
+    /// Whether to disable the anti-cheat.
+    ///
+    /// Sometimes, the anti-cheat can prevent DLLs from being injected.\
+    /// If this is the case, set this to `true`.
+    ///
+    /// In most cases however, this should be set to `false`.
+    pub disable_anti_cheat: bool
+}
+
+impl Game {
+    /// Determines the name of the executable.
+    ///
+    /// This is used for checking if the game is running.
+    pub fn get_executable_name(&self) -> String {
+        self.path
+            .replace("\\", "/")
+            .split("/")
+            .last()
+            .unwrap_or(dotenv!("DEFAULT_EXECUTABLE_NAME"))
+            .to_string()
+    }
+    
+    /// Parses the modifications into a list of `Modification`s.
+    pub fn modifications(&self) -> Vec<Modification> {
+        let mut mods = Vec::new();
+        
+        for modification in &self.modifications {
+            if let Some(modification) = Modification::from_raw(modification) {
+                mods.push(modification);
+            }
+        }
+        
+        mods
+    }
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        Game {
+            path: dotenv!("DEFAULT_EXECUTABLE_PATH").to_string(),
+            modifications: vec!["3DMigoto".to_string()],
+            disable_anti_cheat: false
+        }
     }
 }
 
@@ -159,24 +303,6 @@ impl Default for Sniffer {
             filter: "udp portrange 22101-22102".to_string(),
             server_ports: vec![22101, 22102],
             seeds_file: "$APPDATA/sniffer/known-seeds.txt".to_string()
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
-pub struct Launcher {
-    /// Whether to always elevate the launcher on start up or not.
-    /// 
-    /// The launcher might sometimes ask for 
-    /// elevation regardless to open the game.
-    pub always_elevate: bool
-}
-
-impl Default for Launcher {
-    fn default() -> Self {
-        Launcher {
-            always_elevate: true
         }
     }
 }

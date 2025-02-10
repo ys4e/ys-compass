@@ -11,6 +11,31 @@ launcher:
     # The launcher might sometimes ask for elevation regardless to open the game.
     always-elevate: true
 
+# Game information config
+game:
+    # The absolute path to the game's executable.
+    #
+    # This is used to launch the game.
+    path: "C:/Program Files/Genshin Impact/Genshin Impact game/GenshinImpact.exe"
+
+    # A list of supported modifications to inject into the game.
+    #
+    # Valid examples:
+    # - 3DMigoto/GIMI
+    # - ReShade
+    #
+    # Absolute paths to DLLs can also be used when prefixed with `dll:`
+    modifications:
+        - 3DMigoto # This value can also be inputted as 'GIMI'
+
+    # Whether to disable the anti-cheat.
+    #
+    # Sometimes, the anti-cheat can prevent DLLs from being injected.
+    # If this is the case, set this to `true`.
+    #
+    # In most cases however, this should be set to `false`.
+    disable-anti-cheat: false
+
 # Sniffer config
 sniffer:
     # The name of the network interface to use.

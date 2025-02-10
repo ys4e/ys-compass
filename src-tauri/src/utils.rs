@@ -7,6 +7,11 @@ use base64::prelude::BASE64_STANDARD;
 use sys_locale::get_locale;
 use ys_sniffer::PacketSource;
 
+/// This type is used for Tauri commands.
+///
+/// It might return an error message if something went wrong.
+pub type MaybeError<T> = std::result::Result<T, &'static str>;
+
 /// This is the identifier of the app.
 ///
 /// This is used in path resolving.
