@@ -156,26 +156,26 @@ pub enum Modification {
     Migoto,
 
     /// A general-purpose post-processing utility.
-    /// 
+    ///
     /// ReShade is readily available at [reshade.me](https://reshade.me);
-    /// 
+    ///
     /// This modification is managed by the application.
     ReShade,
-    
+
     /// A modding utility developed by `ys4e` for interacting with `ys-compass`.
-    /// 
+    ///
     /// This modification is always injected when playing on custom servers, and cannot be configured normally.
-    /// 
+    ///
     /// This modification is managed by the application.
     YsHelper,
-    
+
     /// This represents a DLL specified by the user.
     UnmanagedDll(String)
 }
 
 impl Modification {
     /// Parses the string into a modification.
-    /// 
+    ///
     /// Returns `None` if the modification is unknown.
     pub fn from_raw(raw: &String) -> Option<Modification> {
         match raw.to_lowercase().as_str() {
@@ -191,7 +191,7 @@ impl Modification {
             }
         }
     }
-    
+
     /// Returns the absolute path to the modification's DLL.
     pub fn to_path(&self) -> Result<String> {
         let path = match self {
@@ -200,7 +200,7 @@ impl Modification {
             Modification::YsHelper => system::resolve_path("$APPDATA/mods/ys-helper.dll")?,
             Modification::UnmanagedDll(path) => system::resolve_path(path)?
         };
-        
+
         Ok(path.to_string_lossy().to_string())
     }
 }
@@ -243,17 +243,17 @@ impl Game {
             .unwrap_or(dotenv!("DEFAULT_EXECUTABLE_NAME"))
             .to_string()
     }
-    
+
     /// Parses the modifications into a list of `Modification`s.
     pub fn modifications(&self) -> Vec<Modification> {
         let mut mods = Vec::new();
-        
+
         for modification in &self.modifications {
             if let Some(modification) = Modification::from_raw(modification) {
                 mods.push(modification);
             }
         }
-        
+
         mods
     }
 }

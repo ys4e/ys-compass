@@ -46,8 +46,10 @@ fn setup_app() -> Result<()> {
     let app_data_dir = utils::app_data_dir()?;
     if !app_data_dir.exists() {
         fs::create_dir_all(&app_data_dir)?;
+        fs::create_dir(app_data_dir.join("mods"))?;
         fs::create_dir(app_data_dir.join("cache"))?;
         fs::create_dir(app_data_dir.join("dumps"))?;
+        fs::create_dir(app_data_dir.join("sniffer"))?;
     }
 
     // Initialize the configuration.
