@@ -94,12 +94,14 @@ struct Packet {
     pub source: PacketSource,
 
     /// The offset from when the packet was received and when sniffing began.
-    received: u64
+    ///
+    /// This number is in milliseconds, and is an unsigned long.
+    received: u128
 }
 
 impl Packet {
     /// Creates a new packet from the given data.
-    pub fn new(data: GamePacket, received: u64) -> Self {
+    pub fn new(data: GamePacket, received: u128) -> Self {
         Self {
             id: data.id,
             header: data.header,
@@ -113,7 +115,7 @@ impl Packet {
 impl Display for Packet {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f,
-               "[{}s] [{} -> {}] {} of length {}",
+               "[{}ms] [{} -> {}] {} of length {}",
                self.received,
                self.source,
                utils::opposite(self.source),
@@ -132,7 +134,7 @@ pub async fn run_cli() {
         Ok(path) => path.to_string_lossy().to_string(),
         Err(_) => "known-seeds.txt".to_string()
     };
-    
+
     // Prepare the sniffer configuration.
     let sniffer_config = SnifferConfig {
         device_name: Some(get_device(&mut config)),
@@ -151,7 +153,7 @@ pub async fn run_cli() {
     };
 
     // Create mutex for storing packets.
-    let start_time = Instant::now();
+    let mut start_time: Option<Instant> = None;
 
     let log_enabled = Arc::new(AtomicBool::new(false));
     let packets = Arc::new(Mutex::new(Vec::new()));
@@ -162,14 +164,18 @@ pub async fn run_cli() {
 
     tokio::spawn(async move {
         while let Some(packet) = rx.recv().await {
-            // Lock the list.
+            if start_time.is_none() {
+                start_time = Some(Instant::now());
+            }
+            
+            // Lock the list to push the packet.
             let mut list = packet_list.lock().await;
 
             // Create a new packet with the current time.
             let current_time = Instant::now();
             let packet = Packet::new(
                 packet,
-                current_time.duration_since(start_time).as_secs()
+                current_time.duration_since(start_time.unwrap()).as_millis()
             );
 
             // Write the packet to the console.
