@@ -16,6 +16,7 @@
     "@tauri-apps/api": "2.0.0",
     "@tauri-apps/plugin-log": "^2.2.1",
     "@tauri-apps/plugin-store": "^2.2.0",
+    "@tauri-apps/plugin-dialog": "^2.2.0",
     "@xzdarcy/react-timeline-editor": "^0.1.9",
     "classnames": "^2.5.1",
     "fast-average-color": "^9.4.0",

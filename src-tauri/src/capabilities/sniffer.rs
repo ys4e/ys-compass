@@ -1,5 +1,8 @@
 use crate::utils::serde_base64;
 use std::fmt::{Display, Formatter};
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 use std::sync::{Arc, MutexGuard};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
@@ -7,7 +10,9 @@ use dialoguer::{BasicHistory, Input, Select};
 use dialoguer::theme::ColorfulTheme;
 use log::{error, info, warn};
 use pcap::Device;
+use pcap_file::pcap::PcapReader;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tokio::sync::Mutex;
 use ys_sniffer::{Config as SnifferConfig, GamePacket, PacketSource};
 use crate::config::{save_config, Config};
@@ -167,7 +172,7 @@ pub async fn run_cli() {
             if start_time.is_none() {
                 start_time = Some(Instant::now());
             }
-            
+
             // Lock the list to push the packet.
             let mut list = packet_list.lock().await;
 
@@ -252,4 +257,153 @@ pub async fn run_cli() {
     shutdown_hook.send(()).unwrap();
 
     info!("Sniffer has been shut down.");
+}
+
+/// A packet that is displayed on the frontend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VisualPacket {
+    /// The timestamp of the packet.
+    ///
+    /// This is offset from the connection was created.
+    time: f32,
+
+    /// The source of the packet.
+    #[serde(with = "src_string")]
+    source: PacketSource,
+
+    /// The packet ID.
+    packet_id: u16,
+
+    /// The display name of the packet.
+    ///
+    /// If unknown, this should be an obfuscated name.
+    ///
+    /// If no obfuscated name is shown, the packet's ID in numerical form should be shown.
+    packet_name: String,
+
+    /// The length of the packet's data.
+    length: u64,
+
+    /// The packet's decoded data to be shown to the user.
+    data: String,
+
+    /// The raw binary packet data.
+    ///
+    /// This will be Base64-encoded
+    #[serde(with = "serde_base64")]
+    binary: Vec<u8>,
+    
+    /// The index of the packet.
+    /// 
+    /// This represents the array index.
+    index: u32
+}
+
+/// Reads and parses the selected file for packets.
+///
+/// If the file is in a JSON file, it will try to be parsed as a `Packet` or `VisualPacket`.
+///
+/// If the file is in `pcap` format, it will try to be parsed as a `Packet`.
+#[tauri::command]
+pub fn sniffer__load(file_path: String) -> Result<Vec<VisualPacket>, &'static str> {
+    // Read the file.
+    let file_path = PathBuf::from(file_path);
+    let Ok(file) = File::open(&file_path) else {
+        return Err("Failed to open the file.");
+    };
+
+    // Check if the data is a packet capture.
+    let data = match utils::read_file(&file_path) {
+        Ok(data) => data,
+        Err(_) => return Err("Failed to read the file.")
+    };
+    if let Ok(reader) = PcapReader::new(&file) {
+        return read_pcap(reader);
+    }
+
+    // Otherwise, try treating the data as plain-text JSON.
+    let json_data = match serde_json::from_slice::<Vec<Value>>(&data) {
+        Ok(data) => data,
+        Err(_) => return Err("Invalid JSON data provided")
+    };
+
+    // If the data is empty, return nothing now.
+    if json_data.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // Check if the first element contains a 'binary' field.
+    let first = &json_data[0];
+    match first.get("binary") {
+        Some(Value::String(_)) => Ok(json_data.iter()
+            .map(|value| serde_json::from_value::<VisualPacket>(value.clone())
+                .unwrap())
+            .collect::<Vec<VisualPacket>>()),
+        None | Some(Value::Null) => read_json(json_data.iter()
+            .map(|value| serde_json::from_value::<Packet>(value.clone())
+                .unwrap())
+            .collect::<Vec<Packet>>()),
+        _ => Err("Invalid JSON data provided")
+    }
+}
+
+/// Reads the packets from a pcap file.
+fn read_pcap<R: Read>(_: PcapReader<R>) -> Result<Vec<VisualPacket>, &'static str> {
+    Err("Not implemented")
+}
+
+/// Reads the JSON data as a list of packets.
+///
+/// This method exists to run `protoshark` on the data.
+fn read_json(data: Vec<Packet>) -> Result<Vec<VisualPacket>, &'static str> {
+    let mut packets = Vec::new();
+
+    // Get the first packet.
+    // This will serve as the base time for the packets.
+    let Some(first) = data.first() else {
+        // This means no packets exist.
+        // We can just return an empty array.
+        return Ok(packets);
+    };
+    let base_time = first.received;
+
+    for packet in data {
+        // Run `protoshark` to decode the packet.
+        let Ok(decoded) = protoshark::decode(&packet.data) else {
+            warn!("Failed to decode packet: {}", packet.id);
+            continue;
+        };
+
+        packets.push(VisualPacket {
+            time: (packet.received - base_time) as f32,
+            source: packet.source,
+            packet_id: packet.id,
+            packet_name: packet.id.to_string(),
+            length: packet.data.len() as u64,
+            data: serde_json::to_string(&decoded).unwrap(),
+            binary: packet.data.clone(),
+            index: packets.len() as u32
+        });
+    }
+
+    Ok(packets)
+}
+
+mod src_string {
+    use ys_sniffer::PacketSource;
+    use serde::{Serialize, Deserialize, Serializer, Deserializer};
+
+    pub fn serialize<S: Serializer>(source: &PacketSource, s: S) -> Result<S::Ok, S::Error> {
+        String::serialize(&source.to_string().to_lowercase(), s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PacketSource, D::Error> {
+        let string = String::deserialize(d)?;
+        match string.as_str() {
+            "client" => Ok(PacketSource::Client),
+            "server" => Ok(PacketSource::Server),
+            _ => Err(serde::de::Error::custom("invalid packet source"))
+        }
+    }
 }

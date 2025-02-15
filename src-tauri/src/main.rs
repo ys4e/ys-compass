@@ -26,6 +26,7 @@ mod events;
 mod system;
 
 use crate::app::{appearance, game};
+use crate::capabilities::sniffer;
 use crate::config::{Config, Language};
 
 // Generate the translation function.
@@ -172,9 +173,11 @@ fn run_tauri_app() {
             })
             .build())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(generate_handler![
             translate,
             game::game__launch,
+            sniffer::sniffer__load,
             config::config__get,
             window::window__close,
             appearance::appearance__background,

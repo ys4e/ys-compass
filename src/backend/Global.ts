@@ -1,4 +1,5 @@
 import { Store } from "@tauri-apps/plugin-store";
+import { warn as logWarn } from "@tauri-apps/plugin-log";
 
 const cacheStore = await Store.load("cache.json");
 
@@ -15,6 +16,15 @@ class Global {
      */
     static fallback(error: any): void {
         console.error("Crashed while crashing. Please report this bug to the developers!", error);
+    }
+
+    /**
+     * Logs a warning message to the console.
+     *
+     * @param message The message to log.
+     */
+    static warn(message: string): void {
+        logWarn(message).catch(Global.fallback);
     }
 }
 

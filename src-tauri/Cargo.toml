@@ -31,11 +31,13 @@ serde_yml = "0.0.12"
 serde = { version = "1.0", features = ["derive"] }
 
 base64 = "0.22"
+pcap-file = "2"
 
 # Tauri & Plugins
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-log = "2"
 tauri-plugin-store = "2"
+tauri-plugin-dialog = "2"
 
 # Tokio asynchronous runtime
 tokio = { version = "1", features = ["full"] }
@@ -65,6 +67,7 @@ dialoguer = { version = "0.11", features = ["history"] }
 reqwest = "0.12"
 
 # ys4e tools
+protoshark = { path = "../../protoshark" }
 ys-sniffer = { path = "../../ys-sniffer", features = ["tokio"] }
 
 pcap = "2.2"

@@ -19,6 +19,10 @@ import usePacketList from "@hooks/visualizer/usePacketList.ts";
 import type { Packet as PacketType } from "@backend/types.ts";
 
 import "@css/pages/PacketVisualizer.scss";
+import { open } from "@tauri-apps/plugin-dialog";
+import { downloadDir } from "@tauri-apps/api/path";
+import Global from "@backend/Global.ts";
+import { invoke } from "@tauri-apps/api/core";
 
 /// <editor-fold desc="Filtering">
 type ComplexFilters = {
@@ -362,55 +366,30 @@ function PacketVisualizer() {
                     <Button
                         id={"visualizer-load"}
                         className={"bg-aqua hover:brightness-150"}
-                        onClick={() => {
-                            const upload = document.createElement("input");
-                            upload.type = "file";
+                        onClick={async () => {
+                            try {
+                                // Prompt user to select a file.
+                                const selected = await open({
+                                    filters: [{ name: "Packet Dumps", extensions: ["json"] }]
+                                });
 
-                            upload.addEventListener("change", () => {
-                                const file = upload.files?.[0];
-                                if (!file) {
-                                    console.error("No file selected.");
-                                    upload.remove();
+                                // Check if the user selected a file.
+                                if (selected == null) {
                                     return;
                                 }
 
-                                const reader = new FileReader();
-                                reader.onload = evt => {
-                                    const contents = evt.target?.result;
-                                    if (!contents) {
-                                        console.error("Failed to read file contents.");
-                                        upload.remove();
-                                        return;
-                                    }
+                                // Pass the file to the backend for processing.
+                                const packets: PacketType[] = await invoke(
+                                    "sniffer__load",
+                                    { filePath: selected }
+                                );
 
-                                    if (typeof contents === "string") {
-                                        // This is likely a JSON string.
-                                        const data = JSON.parse(contents) as PacketType[];
-
-                                        // Clear the current packets.
-                                        clear();
-                                        setSelected(undefined);
-
-                                        // Add the new packets.
-                                        data.forEach(push);
-
-                                        console.log(`Loaded ${data.length} packets!`);
-                                    } else {
-                                        alert("Packet captures are not yet supported!");
-                                    }
-
-                                    upload.remove();
-                                };
-
-                                // Check the file type.
-                                if (file.name.endsWith(".json")) {
-                                    reader.readAsText(file);
-                                } else {
-                                    reader.readAsArrayBuffer(file);
-                                }
-                            });
-
-                            upload.click();
+                                // Add the packets to the list.
+                                packets.forEach(push);
+                            } catch (error) {
+                                Global.warn("Failed to open file dialog.");
+                                console.warn(error);
+                            }
                         }}
                     >
                         <IoMdCloudUpload />

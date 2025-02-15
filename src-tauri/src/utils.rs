@@ -56,6 +56,12 @@ pub fn write_file<S: AsRef<str>>(path: &PathBuf, data: S) -> Result<()> {
         .map_err(|e| anyhow!(e))
 }
 
+/// Reads the given file as a byte array.
+pub fn read_file(path: &PathBuf) -> Result<Vec<u8>> {
+    std::fs::read(path)
+        .map_err(|e| anyhow!(e))
+}
+
 /// Returns a path to the application's configuration directory.
 pub fn app_config_dir() -> Result<PathBuf> {
     dirs::config_dir()

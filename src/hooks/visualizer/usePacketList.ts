@@ -36,7 +36,6 @@ function usePacketList(server: ServerAddress): PacketHook {
             ws.send(JSON.stringify({ packetId: 0 }));
         };
         ws.onclose = () => {
-            alert("Lost connection to server.");
             console.log("Disconnected from server.");
         };
         ws.onmessage = ({ timeStamp, data }) => { try {
