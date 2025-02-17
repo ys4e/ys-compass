@@ -190,7 +190,6 @@ fn open_game(path: String) -> Result<(HANDLE, HANDLE), &'static str> {
     use sysinfo::System;
     use std::mem::size_of;
     use windows::Win32::Foundation::HANDLE;
-    use windows::Win32::System::Threading::LPPROC_THREAD_ATTRIBUTE_LIST;
 
     // Get token to open process.
     let token = unsafe {
@@ -232,44 +231,9 @@ fn open_game(path: String) -> Result<(HANDLE, HANDLE), &'static str> {
         return Err("game.error.launch.no-parent");
     }
 
-    // Initialize the process attribute list.
-    let mut list: Vec<u8>;
-    let attributes = unsafe {
-        use windows::Win32::System::Threading::{
-            InitializeProcThreadAttributeList,
-            UpdateProcThreadAttribute,
-            PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
-        };
-
-        let mut size = 0;
-        _ = InitializeProcThreadAttributeList(None, 1, None, &mut size);
-
-        // Create the attribute list.
-        list = vec![0; size];
-        let ptr = LPPROC_THREAD_ATTRIBUTE_LIST(list.as_mut_ptr() as *mut _);
-
-        if let Err(_) = InitializeProcThreadAttributeList(Some(ptr), 1, None, &mut size) {
-            return Err("game.error.launch.unknown");
-        }
-
-        // Update the Windows Explorer attributes.
-        let explorer_handle = explorer;
-        if let Err(_) = UpdateProcThreadAttribute(
-            ptr,
-            0,
-            PROC_THREAD_ATTRIBUTE_PARENT_PROCESS as usize,
-            Some(&explorer_handle as *const HANDLE as *const _),
-            size_of::<HANDLE>(),
-            None,
-            None
-        ) {
-            return Err("game.error.launch.unknown");
-        }
-
-        ptr
-    };
-
     unsafe {
+        use std::ffi::CString;
+        use windows::core::PSTR;
         use windows::Win32::System::Threading::{
             PROCESS_INFORMATION,
             STARTUPINFOEXA,
@@ -284,7 +248,7 @@ fn open_game(path: String) -> Result<(HANDLE, HANDLE), &'static str> {
                 cb: size_of::<STARTUPINFOEXA>() as u32,
                 ..Default::default()
             },
-            lpAttributeList: attributes
+            lpAttributeList: Default::default()
         };
 
         // Create the process.
@@ -293,22 +257,19 @@ fn open_game(path: String) -> Result<(HANDLE, HANDLE), &'static str> {
         };
 
         let path = path.as_cstring();
+        let arguments = CString::new("--insecure --verbose --console").unwrap();
+
         let result = CreateProcessAsUserA(
             Some(token),
             sys_str!(path),
-            None, None, None,
+            Some(PSTR(arguments.as_ptr() as *mut u8)),
+            None, None,
             false,
             EXTENDED_STARTUPINFO_PRESENT,
             None, None,
             &mut start_info as *mut _ as *mut _,
             &mut process_info
         );
-
-        // Free the attribute list.
-        if !attributes.is_invalid() {
-            use windows::Win32::System::Threading::DeleteProcThreadAttributeList;
-            DeleteProcThreadAttributeList(attributes);
-        }
 
         // Check if the process was created.
         if let Err(error) = result {
