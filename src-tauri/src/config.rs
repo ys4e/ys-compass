@@ -197,7 +197,7 @@ impl Modification {
         let path = match self {
             Modification::Migoto => system::resolve_path("$APPDATA/mods/3DMigoto/d3d11.dll")?,
             Modification::ReShade => system::resolve_path("$APPDATA/mods/ReShade/ReShade64.dll")?,
-            Modification::YsHelper => system::resolve_path("$APPDATA/mods/ys-helper.dll")?,
+            Modification::YsHelper => system::resolve_path("$APPDATA/mods/YSHelper/yshelper.dll")?,
             Modification::UnmanagedDll(path) => system::resolve_path(path)?
         };
 
