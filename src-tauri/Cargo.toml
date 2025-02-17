@@ -105,6 +105,7 @@ custom-protocol = [ "tauri/custom-protocol" ]
 
 [profile.dev]
 
+opt-level = 1 # Prioritizes faster compile times.
 incremental = true # Compile your binary in smaller steps.
 rustflags = ["-Zthreads=8"] # Better compile performance.
 
