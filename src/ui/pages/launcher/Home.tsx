@@ -1,7 +1,7 @@
 import Button from "@components/common/Button.tsx";
 import useColorScheme from "@hooks/appearance/useColorScheme.ts";
 import classNames from "classnames";
-import { RefreshCw } from "lucide-react";
+import { ChevronsRight } from "lucide-react";
 import Text from "@components/common/Text.tsx";
 import { invoke } from "@tauri-apps/api/core";
 import { t } from "@backend/Language.ts";
@@ -22,7 +22,10 @@ function Home() {
                         "lifted w-[340px] h-10 px-5",
                         "flex flex-row items-center justify-between",
                         "text-sm text-left font-medium text-primary",
-                        "rounded-full"
+                        "rounded-full",
+                        "transition-transform duration-200",
+                        "hover:scale-105 hover:opacity-85",
+                        "active:opacity-75"
                     )}
                     style={{
                         backgroundColor: colors.primary,
@@ -37,7 +40,7 @@ function Home() {
                 >
                     <Text>launcher.home.game.play</Text>
 
-                    <RefreshCw size={22} />
+                    <ChevronsRight size={22} />
                 </Button>
             </div>
 

@@ -1,13 +1,22 @@
+use std::path::PathBuf;
 use std::sync::MutexGuard;
+use lazy_static::lazy_static;
 use log::warn;
+use regex::Regex;
+use sqlx::Error;
+use tauri::AppHandle;
 use crate::config::Config;
-use crate::system;
+use crate::{database, system};
 use crate::utils::MaybeError;
 
 #[cfg(windows)]
 use crate::{sys_str, system::AsCString};
 #[cfg(windows)]
 use windows::Win32::{Foundation::HANDLE, System::Threading::LPTHREAD_START_ROUTINE};
+
+lazy_static! {
+    static ref VERSION_STRING_REGEX: Regex = Regex::new(r"(OS|CN)(REL|CB)Win([1-9])\.([0-9])\.([0-9]*)").unwrap();
+}
 
 /// Utility method to check if the game is currently running.
 ///
@@ -39,6 +48,69 @@ pub fn game__launch() -> MaybeError<()> {
     // Launch the game.
     launch_game(config)
 }
+
+/// Locates a game installation, then adds it to the version database.
+///
+/// # Errors
+///
+/// Errors are not localized and need to be looked up by the
+/// caller before displaying to the user.
+#[tauri::command]
+pub async fn game__locate(app_handle: AppHandle, path: String) -> MaybeError<()> {
+    locate_game(path).await
+}
+
+/// Locates an existing game installation.
+pub async fn locate_game(path: String) -> MaybeError<()> {
+    // Load the executable data into memory.
+    // "is there a better way to do this? probably not."
+    let executable_path = PathBuf::from(&path);
+    let Some(parent) = executable_path.parent() else {
+        return Err("backend.version.resolve.error");
+    };
+
+    // If a `UnityPlayer.dll` is found, use it for the version string lookup.
+    let unity_player = parent.join("UnityPlayer.dll");
+    let game_data = match std::fs::read(
+        if unity_player.exists() { unity_player } else { executable_path }
+    ) {
+        Ok(data) => data,
+        Err(_) => return Err("backend.version.resolve.error")
+    };
+    let game_data = String::from_utf8_lossy(&game_data);
+
+    // Match the version string.
+    let Some(captures) = VERSION_STRING_REGEX.captures(&game_data) else {
+        return Err("backend.version.resolve.error");
+    };
+    let Some(version_string) = captures.get(0) else {
+        return Err("backend.version.resolve.error");
+    };
+    let version_string = version_string.as_str();
+
+    // Insert the game into the database.
+    let pool = database::get_pool();
+
+    // Check if the version already exists.
+    match sqlx::query!("SELECT * FROM `versions` WHERE `version` = $1", version_string).fetch_one(&pool).await {
+        Err(Error::RowNotFound) => (),
+        Ok(_) => return Err("backend.version.resolve.exists"),
+        _ => return Err("database.query-failed")
+    }
+    
+    // Otherwise, insert the version.
+    if let Err(error) = sqlx::query!(
+        "INSERT INTO `versions` (`version`, `path`) VALUES ($1, $2)",
+        version_string, path
+    ).execute(&pool).await {
+        warn!("Failed to insert version: {}", error);
+        return Err("database.query-failed");
+    };
+
+    Ok(())
+}
+
+// ------------------------------ BEWARE: Below is all platform-dependent code! ------------------------------ \\
 
 /// Internal method used to launch the game.
 ///

@@ -4,6 +4,9 @@
 # By default, this is the system language. (en-us)
 language: "en-us"
 
+# This is the SQLite file used for keeping additional launcher data.
+data-file: "$APPDATA/data.db"
+
 # Launcher general config
 launcher:
     # Whether to always elevate the launcher on start up or not.

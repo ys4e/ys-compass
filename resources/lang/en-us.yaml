@@ -4,6 +4,8 @@ _version: 1
 backend.tauri.emit.error: "Error while emitting event to the frontend."
 backend.path.error.appdata: "Failed to resolve application data path."
 backend.path.error.modification: "Failed to resolve path to modification."
+backend.version.resolve.error: "Failed to resolve game version."
+backend.version.resolve.exists: "The game version is already installed."
 
 # General Error Messages
 game.error.already-open: "The game is already running."
@@ -13,6 +15,9 @@ game.error.launch.bad-path: "The game path is invalid."
 game.error.launch.not-elevated: "The launcher requires elevation to run the game."
 game.error.launch.no-parent: "No parent process was found to attach the game to."
 game.error.launch.dll-fail: "Failed to inject one or more DLLs into the game."
+
+# Database Error Messages
+database.query-failed: "Failed to update database."
 
 # Launcher Home Page
 launcher.home.game.play: "Start Game"

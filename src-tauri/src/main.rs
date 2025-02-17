@@ -24,6 +24,7 @@ mod window;
 mod capabilities;
 mod events;
 mod system;
+mod database;
 
 use crate::app::{appearance, game};
 use crate::capabilities::sniffer;
@@ -42,7 +43,15 @@ lazy_static! {
 
 /// Global function used by both console and desktop
 /// applications for preparing the application.
-fn setup_app() -> Result<()> {
+async fn setup_app() -> Result<()> {
+    // Initialize the configuration.
+    let config = Config::get();
+
+    // If the launcher should elevate, do so now.
+    if config.launcher.always_elevate && !system::is_elevated() {
+        system::elevate()?;
+    }
+
     // Check if the data directory exists.
     let app_data_dir = utils::app_data_dir()?;
     if !app_data_dir.exists() {
@@ -53,16 +62,11 @@ fn setup_app() -> Result<()> {
         fs::create_dir(app_data_dir.join("sniffer"))?;
     }
 
-    // Initialize the configuration.
-    let config = Config::get();
-
     // Set the language.
     rust_i18n::set_locale(&config.language);
 
-    // If the launcher should elevate, do so now.
-    if config.launcher.always_elevate && !system::is_elevated() {
-        system::elevate()?;
-    }
+    // Create the database connection pool.
+    database::initialize(&config).await?;
 
     Ok(())
 }
@@ -78,7 +82,7 @@ fn clap() -> Command {
 #[tokio::main]
 async fn main() {
     // Run the application setup function.
-    if let Err(error) = setup_app() {
+    if let Err(error) = setup_app().await {
         eprintln!("Failed to setup application: {:#?}", error);
         return;
     }
@@ -176,7 +180,9 @@ fn run_tauri_app() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(generate_handler![
             translate,
+            game::game__is_open,
             game::game__launch,
+            game::game__locate,
             sniffer::sniffer__load,
             config::config__get,
             window::window__close,

@@ -20,7 +20,6 @@ import type { Packet as PacketType } from "@backend/types.ts";
 
 import "@css/pages/PacketVisualizer.scss";
 import { open } from "@tauri-apps/plugin-dialog";
-import { downloadDir } from "@tauri-apps/api/path";
 import Global from "@backend/Global.ts";
 import { invoke } from "@tauri-apps/api/core";
 

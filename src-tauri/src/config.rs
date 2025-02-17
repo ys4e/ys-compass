@@ -93,6 +93,10 @@ pub struct Config {
     /// This is always used, regardless of the default system language.
     #[serde(default = "Config::default_language")]
     pub language: String,
+    
+    /// This is the SQLite file used for keeping additional launcher data.
+    #[serde(default = "Config::default_data_file")]
+    pub data_file: String,
 
     /// The configuration used for the launcher.
     #[serde(default)]
@@ -125,6 +129,11 @@ impl Config {
     /// This is based on the system's language.
     fn default_language() -> String {
         SYSTEM_LANGUAGE.to_locale().to_string()
+    }
+    
+    /// Returns the default data file.
+    fn default_data_file() -> String {
+        "$APPDATA/data.db".to_string()
     }
 }
 

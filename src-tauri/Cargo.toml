@@ -72,6 +72,9 @@ ys-sniffer = { path = "../../ys-sniffer", features = ["tokio"] }
 
 pcap = "2.2"
 
+# Data storage
+sqlx = { version = "0.8", features = ["derive", "sqlite", "migrate", "runtime-tokio"] }
+
 [target.'cfg(windows)'.dependencies]
 
 # Windows-specific dependencies
