@@ -4,7 +4,7 @@
 
 # SQLite development database
 # This file will not be used in production.
-*.db
+*.db*
 
 # This is used for blocking symlinks to `.env`.
 .env
