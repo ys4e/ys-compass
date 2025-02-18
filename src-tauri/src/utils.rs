@@ -97,3 +97,15 @@ pub mod serde_base64 {
             .map_err(serde::de::Error::custom)
     }
 }
+
+/// Extracts the name of the executable from a path.
+///
+/// Returns the default game executable if it fails.
+pub fn get_executable_name<S: AsRef<str>>(path: S) -> String {
+    path.as_ref()
+        .replace("\\", "/")
+        .split("/")
+        .last()
+        .unwrap_or(dotenv!("DEFAULT_EXECUTABLE_NAME"))
+        .to_string()
+}

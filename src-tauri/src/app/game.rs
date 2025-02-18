@@ -1,30 +1,329 @@
 use std::path::PathBuf;
 use std::sync::MutexGuard;
+use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use log::warn;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use sqlx::Error;
-use tauri::AppHandle;
+use tauri::State;
+use tokio::sync::RwLock;
 use crate::config::Config;
-use crate::{database, system};
+use crate::{database, system, utils, GLOBAL_STATE};
 use crate::utils::MaybeError;
 
 #[cfg(windows)]
 use crate::{sys_str, system::AsCString};
 #[cfg(windows)]
 use windows::Win32::{Foundation::HANDLE, System::Threading::LPTHREAD_START_ROUTINE};
+use crate::state::SelectedProfile;
 
 lazy_static! {
+    static ref GAME_MANAGER: RwLock<GameManager> = RwLock::new(GameManager::default());
     static ref VERSION_STRING_REGEX: Regex = Regex::new(r"(OS|CN)(REL|CB)Win([1-9])\.([0-9])\.([0-9]*)").unwrap();
+}
+
+/// A game launch profile.
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct Profile {
+    pub id: String,
+    pub name: String,
+    pub icon: String,
+    pub version: Version,
+    pub tools: Vec<Tool>,
+    pub mods: Vec<Mod>,
+    pub launch_args: String
+}
+
+impl Profile {
+    /// Saves the profile to the database.
+    ///
+    /// If it already exists, it updates the values.
+    pub async fn save(&self) -> Result<()> {
+        let pool = database::get_pool();
+
+        // Convert tools and mods to a string.
+        let tools = self.tools.iter()
+            .map(|tool| tool.id.clone())
+            .collect::<Vec<String>>()
+            .join(",");
+
+        let mods = self.mods.iter()
+            .map(|r#mod| r#mod.id.clone())
+            .collect::<Vec<String>>()
+            .join(",");
+
+        sqlx::query!(
+            r#"INSERT INTO `profiles` (`id`, `name`, `icon`, `version`, `tools`, `mods`, `launch_args`) VALUES
+            ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT(`id`) DO UPDATE SET
+            `name` = $2, `icon` = $3, `version` = $4, `tools` = $5, `mods` = $6, `launch_args` = $7"#,
+            self.id, self.name, self.icon, self.version.version, tools, mods, self.launch_args
+        ).execute(&pool).await?;
+
+        Ok(())
+    }
+}
+
+/// Creates a new game profile.
+#[tauri::command]
+pub async fn game__new_profile(state: State<'_, SelectedProfile>, profile: Profile) -> MaybeError<()> {
+    // Save the profile.
+    if let Err(error) = profile.save().await {
+        warn!("Failed to save profile: {}", error);
+        return Err("launcher.error.profile.unknown");
+    };
+
+    // Lock the selected profile.
+    let mut selected_profile = state.0.lock().unwrap();
+
+    // Check if an existing profile is set.
+    let mut state = GLOBAL_STATE.write().unwrap();
+    if state.selected_profile.is_none() || selected_profile.is_none() {
+        // Set the persistent state.
+        state.selected_profile = Some(profile.id.clone());
+        state.save().ok();
+
+        // Set the selected profile.
+        *selected_profile = Some(profile);
+    }
+
+    Ok(())
+}
+
+/// A game 'modification'.
+///
+/// This links to `Modification`.
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct Tool {
+    pub id: String,
+    pub name: String,
+    pub icon: String,
+    pub path: String
+}
+
+/// A game modification.
+///
+/// This represents things such as game plugins or visual mods.
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct Mod {
+    pub id: String,
+    pub name: String,
+    pub icon: String,
+    pub path: String,
+    pub version: String,
+    pub tool: Tool
+}
+
+/// A game version.
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct Version {
+    pub version: String,
+    pub path: String
+}
+
+/// A manager for parts of the game.
+///
+/// Includes managing:
+/// - profiles
+/// - versions
+/// - tools
+/// - mods
+#[derive(Default)]
+pub struct GameManager {
+    profiles: Vec<Profile>,
+    versions: Vec<Version>,
+    tools: Vec<Tool>,
+    mods: Vec<Mod>
+}
+
+impl GameManager {
+    /// Gets the game manager lock.
+    pub fn get<'a>() -> &'a RwLock<GameManager> {
+        &GAME_MANAGER
+    }
+
+    /// Fetches a profile by its ID.
+    ///
+    /// This returns a clone of the profile data.
+    pub fn get_profile<S: AsRef<str>>(&self, profile_id: S) -> Option<Profile> {
+        let profile_id = profile_id.as_ref();
+
+        match self.profiles.iter().find(|p| p.id.eq(profile_id)) {
+            Some(profile) => Some(profile.clone()),
+            None => None
+        }
+    }
+
+    /// Loads all attributes from the database.
+    pub async fn load_all(&mut self) -> Result<()> {
+        // Load all data.
+        self.load_tools().await?;
+        self.load_mods().await?;
+        self.load_versions().await?;
+        self.load_profiles().await?;
+
+        Ok(())
+    }
+
+    /// Loads all tools from the database.
+    pub async fn load_tools(&mut self) -> Result<()> {
+        let pool = database::get_pool();
+
+        // Get tools from the database.
+        let Ok(results) = sqlx::query!("SELECT * FROM `tools`").fetch_all(&pool).await else {
+            return Err(anyhow!("Unable to query database for tools."))
+        };
+
+        // Parse tools.
+        self.tools.clear();
+        for result in results {
+            self.tools.push(Tool {
+                id: result.id,
+                name: result.name,
+                icon: result.icon,
+                path: result.path
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Loads all mods from the database.
+    ///
+    /// This might fail if tools are not loaded first.
+    pub async fn load_mods(&mut self) -> Result<()> {
+        let pool = database::get_pool();
+
+        // Get mods from the database.
+        let Ok(results) = sqlx::query!("SELECT * FROM `mods`").fetch_all(&pool).await else {
+            return Err(anyhow!("Unable to query database for mods."))
+        };
+
+        // Parse mods.
+        self.mods.clear();
+        for result in results {
+            let Some(tool) = self.tools.iter()
+                .find(|tool| tool.id == result.tool) else {
+                warn!("Tool {} not found for mod: {}.", result.tool, result.id);
+                continue;
+            };
+
+            self.mods.push(Mod {
+                id: result.id,
+                name: result.name,
+                icon: result.icon,
+                path: result.path,
+                version: result.version,
+                tool: tool.clone()
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Loads all known versions from the database.
+    pub async fn load_versions(&mut self) -> Result<()> {
+        let pool = database::get_pool();
+
+        // Get versions from the database.
+        let Ok(results) = sqlx::query!("SELECT * FROM `versions`").fetch_all(&pool).await else {
+            return Err(anyhow!("Unable to query database for versions."))
+        };
+
+        // Parse versions.
+        self.versions.clear();
+        for result in results {
+            self.versions.push(Version {
+                version: result.version,
+                path: result.path
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Loads all profiles from the database.
+    ///
+    /// This requires you to load the following:
+    /// - tools
+    /// - mods
+    /// - versions
+    pub async fn load_profiles(&mut self) -> Result<()> {
+        let pool = database::get_pool();
+
+        // Get profiles from the database.
+        let Ok(results) = sqlx::query!("SELECT * FROM `profiles`").fetch_all(&pool).await else {
+            return Err(anyhow!("Unable to query database for profiles."))
+        };
+
+        // Parse profiles.
+        self.profiles.clear();
+        for result in results {
+            let Some(version) = self.versions.iter()
+                .find(|v| v.version.eq(&result.version)) else {
+                warn!("Version {} not found for profile: {}.", result.version, result.id);
+                continue;
+            };
+
+            let profile = Profile {
+                id: result.id,
+                name: result.name,
+                icon: result.icon,
+                version: version.clone(),
+                tools: match result.tools {
+                    Some(tools) => {
+                        let ids = tools.split(',');
+                        let mut tools = Vec::new();
+
+                        for id in ids {
+                            if let Some(tool) = self.tools.iter()
+                                .find(|tool| tool.id == id) {
+                                tools.push(tool.clone());
+                            }
+                        }
+
+                        tools
+                    },
+                    None => Vec::new()
+                },
+                mods: match result.mods {
+                    Some(mods) => {
+                        let ids = mods.split(',');
+                        let mut mods = Vec::new();
+
+                        for id in ids {
+                            if let Some(r#mod) = self.mods.iter()
+                                .find(|m| m.id == id) {
+                                mods.push(r#mod.clone());
+                            }
+                        }
+
+                        mods
+                    },
+                    None => Vec::new()
+                },
+                launch_args: result.launch_args
+            };
+
+            self.profiles.push(profile);
+        }
+
+        Ok(())
+    }
 }
 
 /// Utility method to check if the game is currently running.
 ///
 /// In the event of any errors, this will return `false`.
 #[tauri::command]
-pub fn game__is_open() -> bool {
-    let config = Config::get();
-    system::find_process(&config.game.get_executable_name())
+pub fn game__is_open(profile: State<SelectedProfile>) -> bool {
+    // Lock the selected profile.
+    let Some(ref profile) = *profile.0.lock().unwrap() else {
+        return false;
+    };
+
+    let path = &profile.version.path;
+    system::find_process(&utils::get_executable_name(path))
 }
 
 /// Launches the game.
@@ -36,17 +335,22 @@ pub fn game__is_open() -> bool {
 /// Errors are not localized and need to be looked up by the
 /// caller before displaying to the user.
 #[tauri::command]
-pub fn game__launch() -> MaybeError<()> {
+pub fn game__launch(profile: State<SelectedProfile>) -> MaybeError<()> {
     // Check if the game process is already running.
-    if game__is_open() {
+    if game__is_open(profile.clone()) {
         return Err("game.error.already-open");
     }
 
-    // Open the configuration.
+    // Get the configuration.
     let config = Config::get();
 
+    // Lock the selected profile.
+    let Some(ref profile) = *profile.0.lock().unwrap() else {
+        return Err("game.error.launch.no-profile");
+    };
+
     // Launch the game.
-    launch_game(config)
+    launch_game(profile, config)
 }
 
 /// Locates a game installation, then adds it to the version database.
@@ -56,7 +360,7 @@ pub fn game__launch() -> MaybeError<()> {
 /// Errors are not localized and need to be looked up by the
 /// caller before displaying to the user.
 #[tauri::command]
-pub async fn game__locate(app_handle: AppHandle, path: String) -> MaybeError<()> {
+pub async fn game__locate(path: String) -> MaybeError<()> {
     locate_game(path).await
 }
 
@@ -97,7 +401,7 @@ pub async fn locate_game(path: String) -> MaybeError<()> {
         Ok(_) => return Err("backend.version.resolve.exists"),
         _ => return Err("database.query-failed")
     }
-    
+
     // Otherwise, insert the version.
     if let Err(error) = sqlx::query!(
         "INSERT INTO `versions` (`version`, `path`) VALUES ($1, $2)",
@@ -136,15 +440,16 @@ fn launch_game(_: MutexGuard<'_, Config>) -> MaybeError<()> {
 /// 2. Disabling the anti-cheat if specified.
 /// 3. Injecting any DLLs specified by the user.
 #[cfg(windows)]
-fn launch_game(config: MutexGuard<'_, Config>) -> MaybeError<()> {
+fn launch_game(profile: &Profile, config: MutexGuard<'_, Config>) -> MaybeError<()> {
     use log::warn;
     use windows::Win32::Foundation::CloseHandle;
     use windows::Win32::System::Threading::ResumeThread;
 
     let game_config = &config.game;
+    let version = &profile.version;
 
     // 1. Launch the game and obtain handles.
-    let (thread, process) = open_game(game_config.path.clone())?;
+    let (thread, process) = open_game(&version.path, &profile.launch_args)?;
 
     // 2. Disable the anti-cheat if specified.
     let disable_ac = game_config.disable_anti_cheat;
@@ -176,12 +481,35 @@ fn launch_game(config: MutexGuard<'_, Config>) -> MaybeError<()> {
     }
 
     // Inject all DLLs in the configuration.
-    for modification in config.game.modifications() {
-        unsafe {
-            match modification.to_path() {
-                Ok(path) => inject_dll(&process, load_library, path)?,
-                Err(_) => warn!("{}", t!("backend.path.error.modification"))
-            }
+    for tool in &profile.tools {
+        // Resolve the tool's path.
+        let Ok(path) = system::resolve_path(&tool.path) else {
+            warn!("{}", t!("backend.path.error.modification"));
+            continue;
+        };
+
+        if !path.exists() {
+            warn!("{}", t!("backend.path.error.modification"));
+            continue;
+        }
+
+        // Check the tool type.
+        let Some(extension) = path.extension() else {
+            warn!("{}", t!("backend.path.error.modification"));
+            continue;
+        };
+
+        let path = path.to_string_lossy().to_string();
+        match extension.to_string_lossy().as_ref() {
+            "dll" => unsafe {
+                inject_dll(&process, load_library, path)?;
+            },
+            "exe" => {
+                if let Err(error) = system::open_executable(&path, None) {
+                    warn!("{} {:?}", t!("game.error.launch.exe-fail"), error)
+                }
+            },
+            _ => warn!("{}: '{}'", t!("game.error.launch.unknown-tool"), tool.name)
         }
     }
 
@@ -258,7 +586,7 @@ unsafe fn resume(process: &HANDLE) -> MaybeError<()> {
 ///
 /// This returns the handles of the thread and process.
 #[cfg(windows)]
-fn open_game(path: String) -> Result<(HANDLE, HANDLE), &'static str> {
+fn open_game(path: &String, launch_args: &String) -> Result<(HANDLE, HANDLE), &'static str> {
     use sysinfo::System;
     use std::mem::size_of;
     use windows::Win32::Foundation::HANDLE;
@@ -304,7 +632,6 @@ fn open_game(path: String) -> Result<(HANDLE, HANDLE), &'static str> {
     }
 
     unsafe {
-        use std::ffi::CString;
         use windows::core::PSTR;
         use windows::Win32::System::Threading::{
             PROCESS_INFORMATION,
@@ -329,7 +656,7 @@ fn open_game(path: String) -> Result<(HANDLE, HANDLE), &'static str> {
         };
 
         let path = path.as_cstring();
-        let arguments = CString::new("--insecure --verbose --console").unwrap();
+        let arguments = launch_args.as_cstring();
 
         let result = CreateProcessAsUserA(
             Some(token),

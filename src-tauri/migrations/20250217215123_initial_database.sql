@@ -28,14 +28,14 @@ CREATE TABLE `mods` (
     `icon` TEXT NOT NULL,
     `path` TEXT NOT NULL,
     `version` TEXT NOT NULL,
-    `tool` TEXT NOT NULL REFERENCES tools(id) ON UPDATE CASCADE
+    `tool` TEXT NOT NULL
 );
 
 CREATE TABLE `profiles` (
     `id` TEXT NOT NULL PRIMARY KEY UNIQUE,
     `name` TEXT NOT NULL,
     `icon` TEXT NOT NULL,
-    `version` VARCHAR(24) REFERENCES versions(version) ON UPDATE CASCADE,
+    `version` VARCHAR(24) NOT NULL,
     `tools` TEXT, -- This is a comma-separated list of tool IDs.
     `mods` TEXT -- This is a comma-separated list of mod IDs.
 );

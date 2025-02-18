@@ -9,12 +9,17 @@ backend.version.resolve.exists: "The game version is already installed."
 
 # General Error Messages
 game.error.already-open: "The game is already running."
+game.error.launch.no-profile: "No profile selected."
 game.error.launch.unsupported: "This platform is currently unsupported."
 game.error.launch.unknown: "An unknown system error has occurred."
 game.error.launch.bad-path: "The game path is invalid."
 game.error.launch.not-elevated: "The launcher requires elevation to run the game."
 game.error.launch.no-parent: "No parent process was found to attach the game to."
 game.error.launch.dll-fail: "Failed to inject one or more DLLs into the game."
+game.error.launch.exe-fail: "Failed to launch one or more executable tools."
+game.error.launch.unknown-tool: "Unknown tool attempted to launch: "
+
+launcher.error.profile.unknown: "An unknown system error has occurred."
 
 # Database Error Messages
 database.query-failed: "Failed to update database."

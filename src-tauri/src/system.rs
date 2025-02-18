@@ -130,6 +130,7 @@ pub fn resolve_path<S: AsRef<str>>(path: S) -> Result<PathBuf> {
 /// The result of opening the file.
 ///
 /// This is used in `system::open_executable`.
+#[derive(Debug)]
 pub enum OpenResult {
     /// The file opened successfully.
     Success,

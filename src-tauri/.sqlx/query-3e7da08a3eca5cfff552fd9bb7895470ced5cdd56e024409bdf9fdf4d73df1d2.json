@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM `profiles`",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "icon",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "version",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "tools",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "mods",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "launch_args",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "3e7da08a3eca5cfff552fd9bb7895470ced5cdd56e024409bdf9fdf4d73df1d2"
+}

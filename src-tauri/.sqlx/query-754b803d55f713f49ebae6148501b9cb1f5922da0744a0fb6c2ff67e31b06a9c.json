@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO `versions` (`version`, `path`) VALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "754b803d55f713f49ebae6148501b9cb1f5922da0744a0fb6c2ff67e31b06a9c"
+}

@@ -9,13 +9,16 @@ extern crate rust_i18n;
 
 use std::collections::HashMap;
 use std::fs;
+use std::sync::RwLock;
 use anyhow::Result;
 use clap::Command;
 use lazy_static::lazy_static;
 use log::info;
-use tauri::{generate_handler, AppHandle};
+use tauri::{generate_handler, AppHandle, Manager};
 use tauri_plugin_log::TimezoneStrategy;
 use tokio::runtime::Handle;
+use tokio::sync::RwLockReadGuard;
+use game::GameManager;
 
 mod utils;
 mod config;
@@ -25,7 +28,9 @@ mod capabilities;
 mod events;
 mod system;
 mod database;
+mod state;
 
+use crate::state::*;
 use crate::app::{appearance, game};
 use crate::capabilities::sniffer;
 use crate::config::{Config, Language};
@@ -39,6 +44,9 @@ i18n!(
 lazy_static! {
     /// The system default language, wrapped in an enum for the supported application languages.
     static ref SYSTEM_LANGUAGE: Language = Language::from_locale(utils::system_locale());
+
+    /// The global state of the application.
+    static ref GLOBAL_STATE: RwLock<PersistentState> = RwLock::new(PersistentState::new());
 }
 
 /// Global function used by both console and desktop
@@ -59,6 +67,7 @@ async fn setup_app() -> Result<()> {
         fs::create_dir(app_data_dir.join("mods"))?;
         fs::create_dir(app_data_dir.join("cache"))?;
         fs::create_dir(app_data_dir.join("dumps"))?;
+        fs::create_dir(app_data_dir.join("images"))?;
         fs::create_dir(app_data_dir.join("sniffer"))?;
     }
 
@@ -67,6 +76,10 @@ async fn setup_app() -> Result<()> {
 
     // Create the database connection pool.
     database::initialize(&config).await?;
+
+    // Load data.
+    let mut game_manager = GameManager::get().write().await;
+    game_manager.load_all().await?;
 
     Ok(())
 }
@@ -113,7 +126,7 @@ async fn main() {
         tauri::async_runtime::set(Handle::current());
 
         // Run the desktop app if no sub-command was provided.
-        run_tauri_app();
+        run_tauri_app().await;
         return;
     }
 
@@ -155,13 +168,21 @@ fn translate(key: String, args: Option<HashMap<String, String>>) -> String {
 /// Prepares the application for use.
 ///
 /// This is exclusive to the desktop application.
-fn setup_tauri_app(_: &AppHandle) -> Result<()> {
+fn setup_tauri_app(
+    app_handle: &AppHandle,
+    game_profile: RwLockReadGuard<'_, GameManager>
+) -> Result<()> {
+    // Initialize global state.
+    app_handle.manage(SelectedProfile::new(game_profile));
+
     Ok(())
 }
 
 /// Runs the Tauri desktop application.
 // noinspection RsUnnecessaryQualifications
-fn run_tauri_app() {
+async fn run_tauri_app() {
+    let game_profile = GameManager::get().read().await;
+
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new()
             .format(|consumer, message, record| {
@@ -183,6 +204,7 @@ fn run_tauri_app() {
             game::game__is_open,
             game::game__launch,
             game::game__locate,
+            game::game__new_profile,
             sniffer::sniffer__load,
             config::config__get,
             window::window__close,
@@ -190,7 +212,7 @@ fn run_tauri_app() {
             appearance::appearance__default_splash
         ])
         .setup(|app| {
-            setup_tauri_app(app.handle())?;
+            setup_tauri_app(app.handle(), game_profile)?;
             Ok(())
         })
         .run(utils::build_context())
