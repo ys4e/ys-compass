@@ -27,9 +27,9 @@ impl Event {
 ///
 /// Requires using the event enum.
 pub fn emit_event(app_handle: &AppHandle, event: Event) {
-    if let Err(_) = app_handle.emit(
+    if let Err(error) = app_handle.emit(
         event.to_string(), event.to_payload()
     ) {
-        warn!("{}", t!("backend.tauri.emit.error"));
+        warn!("{} {}", t!("backend.tauri.emit.error"), error);
     }
 }

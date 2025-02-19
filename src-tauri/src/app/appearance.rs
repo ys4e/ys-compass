@@ -78,7 +78,7 @@ pub async fn appearance__background(app_handle: AppHandle) -> Result<String, &'s
     };
 
     let Some(game) = data.iter()
-        .find(|v| &v["game"]["id"] == dotenv!("GAME_ID"))
+        .find(|v| v["game"]["id"] == dotenv!("GAME_ID"))
     else {
         return Err("Failed to find game information.");
     };

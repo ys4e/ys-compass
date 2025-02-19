@@ -23,9 +23,9 @@ struct CaptureDevice(Device);
 
 impl CaptureDevice {
     /// Converts a list of devices into a list of capture devices.
-    pub fn into(devices: &Vec<Device>) -> Vec<CaptureDevice> {
+    pub fn into(devices: &[Device]) -> Vec<CaptureDevice> {
         devices
-            .into_iter()
+            .iter()
             .map(|d| CaptureDevice(d.clone()))
             .collect()
     }
@@ -147,6 +147,9 @@ pub async fn run_cli() {
         filter: Some(config.sniffer.filter.clone()),
         server_port: config.sniffer.server_ports.clone(),
     };
+
+    // Drop the lock so we don't carry it across await points.
+    drop(config);
 
     // Create the sending/receiving channel.
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<GamePacket>();
@@ -293,9 +296,9 @@ pub struct VisualPacket {
     /// This will be Base64-encoded
     #[serde(with = "serde_base64")]
     binary: Vec<u8>,
-    
+
     /// The index of the packet.
-    /// 
+    ///
     /// This represents the array index.
     index: u32
 }

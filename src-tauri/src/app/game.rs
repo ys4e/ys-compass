@@ -167,10 +167,9 @@ impl GameManager {
     pub fn get_profile<S: AsRef<str>>(&self, profile_id: S) -> Option<Profile> {
         let profile_id = profile_id.as_ref();
 
-        match self.profiles.iter().find(|p| p.id.eq(profile_id)) {
-            Some(profile) => Some(profile.clone()),
-            None => None
-        }
+        self.profiles.iter()
+            .find(|p| p.id.eq(profile_id))
+            .cloned()
     }
 
     /// Saves the given profile to the database.
@@ -351,7 +350,7 @@ pub fn game__is_open(profile: State<SelectedProfile>) -> bool {
     };
 
     let path = &profile.version.path;
-    system::find_process(&utils::get_executable_name(path))
+    system::find_process(utils::get_executable_name(path))
 }
 
 /// Launches the game.
@@ -648,7 +647,7 @@ unsafe fn resume(process: &HANDLE) -> MaybeError<()> {
 ///
 /// This returns the handles of the thread and process.
 #[cfg(windows)]
-fn open_game(path: &String, launch_args: &String) -> Result<(HANDLE, HANDLE), &'static str> {
+fn open_game(path: &String, launch_args: &str) -> Result<(HANDLE, HANDLE), &'static str> {
     use sysinfo::System;
     use std::mem::size_of;
     use windows::Win32::Foundation::HANDLE;
@@ -766,9 +765,9 @@ unsafe fn wait_for_driver(process: &HANDLE) -> MaybeError<()> {
 
         // Enumerate over all drivers.
         let driver_count = needed as usize / size_of_val(&drivers[0]);
-        for i in 0..driver_count {
+        for driver in drivers.iter().take(driver_count) {
             let mut name = [0u8; 256];
-            let size = GetDeviceDriverBaseNameA(drivers[i], &mut name);
+            let size = GetDeviceDriverBaseNameA(*driver, &mut name);
 
             if size == 0 {
                 continue;
@@ -830,13 +829,13 @@ unsafe fn inject_dll(process: &HANDLE, load_library: LPTHREAD_START_ROUTINE, dll
     );
 
     // Write the DLL path to the process.
-    if let Err(_) = WriteProcessMemory(
+    if WriteProcessMemory(
         *process,
         dll_path,
         path.as_ptr() as *const _,
         path_length,
         None
-    ) {
+    ).is_err() {
         return Err("game.error.launch.dll-fail");
     };
 

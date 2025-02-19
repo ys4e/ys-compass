@@ -14,7 +14,7 @@ use anyhow::Result;
 use clap::{arg, Command};
 use lazy_static::lazy_static;
 use tauri::{generate_handler, AppHandle, Manager};
-use tauri_plugin_log::TimezoneStrategy;
+use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 use tokio::runtime::Handle;
 use tokio::sync::RwLockReadGuard;
 use game::GameManager;
@@ -61,7 +61,7 @@ macro_rules! t_str {
 /// applications for preparing the application.
 async fn setup_app() -> Result<()> {
     // Initialize the configuration.
-    let config = Config::get();
+    let config = Config::fetch();
 
     // If the launcher should elevate, do so now.
     if config.launcher.always_elevate && !system::is_elevated() {
@@ -106,7 +106,7 @@ fn clap() -> Command {
                 .arg_required_else_help(true)
                 .subcommand(
                     Command::new("version")
-                        .about(&t!("cli.game.version").to_string())
+                        .about(t_str!("cli.game.version"))
                         .arg_required_else_help(true)
                         .subcommand(
                             Command::new("install")
@@ -233,6 +233,10 @@ async fn run_tauri_app() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new()
+            .targets([
+                Target::new(TargetKind::Stdout),
+                Target::new(TargetKind::LogDir { file_name: None }),
+            ])
             .format(|consumer, message, record| {
                 let time = time::format_description::parse("[hour]:[minute]:[second]")
                     .unwrap();

@@ -5,6 +5,7 @@ use crate::utils;
 
 #[cfg(windows)]
 use std::ffi::CString;
+use log::warn;
 
 /// Encodes a string as a wide string.
 ///
@@ -161,11 +162,12 @@ pub fn open_executable<S: AsRef<str>>(path: S, args: Option<String>) -> Result<O
     std::env::set_current_dir(folder)?;
 
     // Open the executable.
-    if let Err(_) = open::that(format!(
+    if let Err(error) = open::that(format!(
         "{} {}",
         executable.to_string_lossy(),
         args.unwrap_or_default()
     )) {
+        warn!("Failed to open executable: {}", error);
         return Ok(OpenResult::Failed);
     }
 
@@ -198,12 +200,12 @@ pub fn canonicalize<S: AsRef<str>>(path: S) -> Result<String> {
     #[cfg(windows)]
     {
         // This trims the '\\?\' prefix from the path.
-        return Ok(path[4..].to_string());
+        Ok(path[4..].to_string())
     }
 
     #[cfg(unix)]
     {
-        return Ok(path);
+        Ok(path)
     }
 }
 

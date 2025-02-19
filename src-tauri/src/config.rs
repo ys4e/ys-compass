@@ -20,7 +20,7 @@ impl Language {
     }
 
     /// Converts the language to a locale string.
-    pub fn to_locale(&self) -> &'static str {
+    pub fn locale(&self) -> &'static str {
         match self {
             Language::English => "en-US",
             Language::Chinese => "zh-CN"
@@ -124,11 +124,16 @@ impl Config {
         mutex.lock().unwrap()
     }
 
+    /// Creates a clone of the configuration.
+    pub fn fetch() -> Config {
+        Config::get().clone()
+    }
+
     /// Returns the default language.
     ///
     /// This is based on the system's language.
     fn default_language() -> String {
-        SYSTEM_LANGUAGE.to_locale().to_string()
+        SYSTEM_LANGUAGE.locale().to_string()
     }
 
     /// Returns the default data file.

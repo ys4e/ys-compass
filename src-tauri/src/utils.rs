@@ -90,7 +90,7 @@ pub mod serde_base64 {
     use serde::{Serializer, Deserializer, Serialize, Deserialize};
     use crate::utils;
 
-    pub fn serialize<S: Serializer>(v: &Vec<u8>, s: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(v: &[u8], s: S) -> Result<S::Ok, S::Error> {
         String::serialize(&utils::base64_encode(v), s)
     }
 

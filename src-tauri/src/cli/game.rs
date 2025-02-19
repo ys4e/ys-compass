@@ -67,7 +67,7 @@ async fn new_profile() {
     let Ok(version) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt(t!("cli.game.profile.new.prompt.2"))
         .default(0)
-        .items(&versions)
+        .items(versions)
         .interact() else {
         warn!("{}", t!("launcher.error.profile.bad-version"));
         return;
