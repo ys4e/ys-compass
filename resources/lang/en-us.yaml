@@ -10,6 +10,7 @@ backend.version.resolve.exists: "The game version is already installed."
 # General Error Messages
 game.error.already-open: "The game is already running."
 game.error.launch.no-profile: "No profile selected."
+game.error.launch.invalid-profile: "Unable to find the selected profile."
 game.error.launch.unsupported: "This platform is currently unsupported."
 game.error.launch.unknown: "An unknown system error has occurred."
 game.error.launch.bad-path: "The game path is invalid."
@@ -19,6 +20,8 @@ game.error.launch.dll-fail: "Failed to inject one or more DLLs into the game."
 game.error.launch.exe-fail: "Failed to launch one or more executable tools."
 game.error.launch.unknown-tool: "Unknown tool attempted to launch: "
 
+launcher.error.profile.bad-name: "The profile name is invalid."
+launcher.error.profile.bad-version: "The selected game version is invalid."
 launcher.error.profile.unknown: "An unknown system error has occurred."
 
 # Database Error Messages
@@ -40,3 +43,20 @@ launcher.sidebar.settings: "Settings"
 # Launcher Home Page
 launcher.home.game.play: "Start Game"
 launcher.home.game.update: "Update Game"
+
+# CLI Messages
+cli.about: "Desktop application and CLI to interact with Yuan Shen"
+cli.sniff: "Runs the packet sniffer according to the config"
+cli.game: "Interact with the game"
+cli.game.version: "Manage game versions"
+cli.game.version.install: "Install a new game version"
+cli.game.version.locate: "Locate an existing game version"
+cli.game.version.locate.prompt: "Enter the absolute path to the game executable"
+cli.game.version.uninstall: "Uninstall an existing game version"
+cli.game.version.list: "List installed game versions"
+cli.game.profile: "Manage game launching profiles"
+cli.game.profile.new: "Create a new game profile"
+cli.game.profile.new.prompt.1: "Input a name for the new profile"
+cli.game.profile.new.prompt.2: "Select a game version to associate with the profile"
+cli.game.profile.select: "Select an existing game profile"
+cli.game.launch: "Launch the game as configured"

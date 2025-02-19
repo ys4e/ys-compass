@@ -11,9 +11,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
 use anyhow::Result;
-use clap::Command;
+use clap::{arg, Command};
 use lazy_static::lazy_static;
-use log::info;
 use tauri::{generate_handler, AppHandle, Manager};
 use tauri_plugin_log::TimezoneStrategy;
 use tokio::runtime::Handle;
@@ -29,6 +28,7 @@ mod events;
 mod system;
 mod database;
 mod state;
+mod cli;
 
 use crate::state::*;
 use crate::app::{appearance, game};
@@ -47,6 +47,14 @@ lazy_static! {
 
     /// The global state of the application.
     static ref GLOBAL_STATE: RwLock<PersistentState> = RwLock::new(PersistentState::new());
+}
+
+/// Converts a translated string into a String reference.
+#[macro_export]
+macro_rules! t_str {
+    ($key:expr) => {
+        &t!($key).to_string()
+    };
 }
 
 /// Global function used by both console and desktop
@@ -87,9 +95,55 @@ async fn setup_app() -> Result<()> {
 /// The syntax tree for the command line interface.
 fn clap() -> Command {
     Command::new("ysc")
-        .about("Desktop application and CLI to interact with Yuan Shen")
-        .subcommand(Command::new("sniff")
-            .about("Runs the packet sniffer according to the config"))
+        .about(t_str!("cli.about"))
+        .subcommand(
+            Command::new("sniff")
+                .about(t_str!("cli.sniff"))
+        )
+        .subcommand(
+            Command::new("game")
+                .about(t_str!("cli.game"))
+                .arg_required_else_help(true)
+                .subcommand(
+                    Command::new("version")
+                        .about(&t!("cli.game.version").to_string())
+                        .arg_required_else_help(true)
+                        .subcommand(
+                            Command::new("install")
+                                .about(t_str!("cli.game.version.install"))
+                        )
+                        .subcommand(
+                            Command::new("locate")
+                                .about(t_str!("cli.game.version.locate"))
+                        )
+                        .subcommand(
+                            Command::new("uninstall")
+                                .about(t_str!("cli.game.version.uninstall"))
+                        )
+                        .subcommand(
+                            Command::new("list")
+                                .about(t_str!("cli.game.version.list"))
+                        )
+                )
+                .subcommand(
+                    Command::new("profile")
+                        .about(t_str!("cli.game.profile"))
+                        .arg_required_else_help(true)
+                        .subcommand(
+                            Command::new("new")
+                                .about(t_str!("cli.game.profile.new"))
+                        )
+                        .subcommand(
+                            Command::new("select")
+                                .about(t_str!("cli.game.profile.select"))
+                        )
+                )
+                .subcommand(
+                    Command::new("launch")
+                        .about(t_str!("cli.game.launch"))
+                        .arg(arg!(--profile <NAME>))
+                )
+        )
 }
 
 #[tokio::main]
@@ -136,13 +190,7 @@ async fn main() {
     }
     pretty_env_logger::init();
 
-    match matches {
-        Some(("sniff", _)) => {
-            info!("Type 'help' for a list of commands.");
-            capabilities::sniffer::run_cli().await;
-        }
-        _ => panic!("unimplemented command")
-    }
+    cli::run(matches).await
 }
 
 /// Translates the given key into a localized string.

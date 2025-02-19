@@ -4,6 +4,8 @@ use tauri::Context;
 use anyhow::{anyhow, Result};
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use rand::distr::Alphanumeric;
+use rand::Rng;
 use sys_locale::get_locale;
 use ys_sniffer::PacketSource;
 
@@ -108,4 +110,13 @@ pub fn get_executable_name<S: AsRef<str>>(path: S) -> String {
         .last()
         .unwrap_or(dotenv!("DEFAULT_EXECUTABLE_NAME"))
         .to_string()
+}
+
+/// Generates a random 16-character ID.
+pub fn random_id() -> String {
+    String::from_utf8(rand::rng()
+        .sample_iter(&Alphanumeric)
+        .take(16)
+        .collect()
+    ).unwrap()
 }

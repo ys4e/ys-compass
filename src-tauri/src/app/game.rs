@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::MutexGuard;
 use anyhow::{anyhow, Result};
+use clap::ArgMatches;
 use lazy_static::lazy_static;
 use log::warn;
 use regex::Regex;
@@ -121,6 +122,24 @@ pub struct Version {
     pub path: String
 }
 
+impl Version {
+    /// Saves the profile to the database.
+    ///
+    /// If it already exists, it updates the values.
+    pub async fn save(&self) -> Result<()> {
+        let pool = database::get_pool();
+
+        sqlx::query!(
+            r#"INSERT INTO `versions` (`version`, `path`) VALUES
+            ($1, $2) ON CONFLICT(`version`) DO UPDATE SET
+            `path` = $2"#,
+            self.version, self.path
+        ).execute(&pool).await?;
+
+        Ok(())
+    }
+}
+
 /// A manager for parts of the game.
 ///
 /// Includes managing:
@@ -130,10 +149,10 @@ pub struct Version {
 /// - mods
 #[derive(Default)]
 pub struct GameManager {
-    profiles: Vec<Profile>,
-    versions: Vec<Version>,
-    tools: Vec<Tool>,
-    mods: Vec<Mod>
+    pub profiles: Vec<Profile>,
+    pub versions: Vec<Version>,
+    pub tools: Vec<Tool>,
+    pub mods: Vec<Mod>
 }
 
 impl GameManager {
@@ -152,6 +171,15 @@ impl GameManager {
             Some(profile) => Some(profile.clone()),
             None => None
         }
+    }
+
+    /// Saves the given profile to the database.
+    pub async fn save_profile(&mut self, mut profile: Profile) -> Result<()> {
+        // Set the profile ID.
+        profile.id = utils::random_id();
+
+        // Write the profile to the database.
+        profile.save().await
     }
 
     /// Loads all attributes from the database.
@@ -351,6 +379,38 @@ pub fn game__launch(profile: State<SelectedProfile>) -> MaybeError<()> {
 
     // Launch the game.
     launch_game(profile, config)
+}
+
+/// Launches the game.
+///
+/// This is invoked from the CLI.
+pub async fn cli_game__launch(matches: &ArgMatches) {
+    let game_manager = GameManager::get().read().await;
+
+    // Get the default/selected profile, or the one specified.
+    let Some(profile) = (match matches.get_one::<String>("profile") {
+        Some(profile) => game_manager.get_profile(profile),
+        None => {
+            let state = GLOBAL_STATE.read().unwrap();
+            let Some(profile) = &state.selected_profile else {
+                warn!("{}", t!("game.error.launch.no-profile"));
+                return;
+            };
+
+            game_manager.get_profile(profile)
+        }
+    }) else {
+        warn!("{}", t!("game.error.launch.invalid-profile"));
+        return;
+    };
+
+    // Lock the configuration.
+    let config = Config::get();
+
+    // Launch the game.
+    if let Err(error) = launch_game(&profile, config) {
+        warn!("{} {}", t!("launcher.error.profile.unknown"), error);
+    }
 }
 
 /// Locates a game installation, then adds it to the version database.
