@@ -1,7 +1,7 @@
 import { Minus, X } from "lucide-react";
 
-import { invoke } from "@tauri-apps/api/core";
 import { window as viewWindow } from "@tauri-apps/api";
+import { invoke } from "@tauri-apps/api/core";
 
 import "@css/components/AppStatusBar.scss";
 

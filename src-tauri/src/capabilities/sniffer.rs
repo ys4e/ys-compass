@@ -1,22 +1,22 @@
+use crate::config::{save_config, Config};
 use crate::utils::serde_base64;
-use std::fmt::{Display, Formatter};
-use std::fs::File;
-use std::io::Read;
-use std::path::PathBuf;
-use std::sync::{Arc, MutexGuard};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Instant;
-use dialoguer::{BasicHistory, Input, Select};
+use crate::{system, utils};
 use dialoguer::theme::ColorfulTheme;
+use dialoguer::{BasicHistory, Input, Select};
 use log::{error, info, warn};
 use pcap::Device;
 use pcap_file::pcap::PcapReader;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::fmt::{Display, Formatter};
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, MutexGuard};
+use std::time::Instant;
 use tokio::sync::Mutex;
 use ys_sniffer::{Config as SnifferConfig, GamePacket, PacketSource};
-use crate::config::{save_config, Config};
-use crate::{system, utils};
 
 /// A struct wrapper that allows the device to be displayed.
 struct CaptureDevice(Device);
@@ -24,10 +24,7 @@ struct CaptureDevice(Device);
 impl CaptureDevice {
     /// Converts a list of devices into a list of capture devices.
     pub fn into(devices: &[Device]) -> Vec<CaptureDevice> {
-        devices
-            .iter()
-            .map(|d| CaptureDevice(d.clone()))
-            .collect()
+        devices.iter().map(|d| CaptureDevice(d.clone())).collect()
     }
 }
 
@@ -35,7 +32,7 @@ impl Display for CaptureDevice {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let description = match self.0.desc {
             Some(ref desc) => desc,
-            None => "No description"
+            None => "No description",
         };
 
         write!(f, "{} - ({})", description, self.0.name)
@@ -101,7 +98,7 @@ struct Packet {
     /// The offset from when the packet was received and when sniffing began.
     ///
     /// This number is in milliseconds, and is an unsigned long.
-    received: u128
+    received: u128,
 }
 
 impl Packet {
@@ -112,20 +109,21 @@ impl Packet {
             header: data.header,
             data: data.data,
             source: data.source,
-            received
+            received,
         }
     }
 }
 
 impl Display for Packet {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,
-               "[{}ms] [{} -> {}] {} of length {}",
-               self.received,
-               self.source,
-               utils::opposite(self.source),
-               self.id,
-               self.data.len()
+        write!(
+            f,
+            "[{}ms] [{} -> {}] {} of length {}",
+            self.received,
+            self.source,
+            utils::opposite(self.source),
+            self.id,
+            self.data.len()
         )
     }
 }
@@ -137,7 +135,7 @@ pub async fn run_cli() {
     // Resolve the seeds file.
     let seeds_file = match system::resolve_path(&config.sniffer.seeds_file) {
         Ok(path) => path.to_string_lossy().to_string(),
-        Err(_) => "known-seeds.txt".to_string()
+        Err(_) => "known-seeds.txt".to_string(),
     };
 
     // Prepare the sniffer configuration.
@@ -183,7 +181,7 @@ pub async fn run_cli() {
             let current_time = Instant::now();
             let packet = Packet::new(
                 packet,
-                current_time.duration_since(start_time.unwrap()).as_millis()
+                current_time.duration_since(start_time.unwrap()).as_millis(),
             );
 
             // Write the packet to the console.
@@ -202,9 +200,7 @@ pub async fn run_cli() {
     });
 
     // Prepare for user input.
-    let mut history = BasicHistory::new()
-        .max_entries(8)
-        .no_duplicates(true);
+    let mut history = BasicHistory::new().max_entries(8).no_duplicates(true);
 
     loop {
         // Read the console for user commands.
@@ -227,7 +223,10 @@ pub async fn run_cli() {
                 let enabled = log_enabled.load(Ordering::Relaxed);
                 log_enabled.store(!enabled, Ordering::Relaxed);
 
-                info!("Logging is now {}", if !enabled { "enabled" } else { "disabled" });
+                info!(
+                    "Logging is now {}",
+                    if !enabled { "enabled" } else { "disabled" }
+                );
             }
             "help" => {
                 info!("Commands:");
@@ -235,14 +234,12 @@ pub async fn run_cli() {
                 info!("  log  - Toggles logging of packets.");
                 info!("  help - Shows this help message.");
             }
-            _ => info!("Unknown command: '{command}'")
+            _ => info!("Unknown command: '{command}'"),
         }
     }
 
     // Dump the packets to the file system.
-    let encoded = serde_json::to_string_pretty(
-        &*packets.lock().await
-    ).unwrap();
+    let encoded = serde_json::to_string_pretty(&*packets.lock().await).unwrap();
 
     let Ok(app_data_dir) = utils::app_data_dir() else {
         error!("Failed to fetch the application data directory.");
@@ -300,7 +297,7 @@ pub struct VisualPacket {
     /// The index of the packet.
     ///
     /// This represents the array index.
-    index: u32
+    index: u32,
 }
 
 /// Reads and parses the selected file for packets.
@@ -319,7 +316,7 @@ pub fn sniffer__load(file_path: String) -> Result<Vec<VisualPacket>, &'static st
     // Check if the data is a packet capture.
     let data = match utils::read_file(&file_path) {
         Ok(data) => data,
-        Err(_) => return Err("Failed to read the file.")
+        Err(_) => return Err("Failed to read the file."),
     };
     if let Ok(reader) = PcapReader::new(&file) {
         return read_pcap(reader);
@@ -328,7 +325,7 @@ pub fn sniffer__load(file_path: String) -> Result<Vec<VisualPacket>, &'static st
     // Otherwise, try treating the data as plain-text JSON.
     let json_data = match serde_json::from_slice::<Vec<Value>>(&data) {
         Ok(data) => data,
-        Err(_) => return Err("Invalid JSON data provided")
+        Err(_) => return Err("Invalid JSON data provided"),
     };
 
     // If the data is empty, return nothing now.
@@ -339,15 +336,17 @@ pub fn sniffer__load(file_path: String) -> Result<Vec<VisualPacket>, &'static st
     // Check if the first element contains a 'binary' field.
     let first = &json_data[0];
     match first.get("binary") {
-        Some(Value::String(_)) => Ok(json_data.iter()
-            .map(|value| serde_json::from_value::<VisualPacket>(value.clone())
-                .unwrap())
+        Some(Value::String(_)) => Ok(json_data
+            .iter()
+            .map(|value| serde_json::from_value::<VisualPacket>(value.clone()).unwrap())
             .collect::<Vec<VisualPacket>>()),
-        None | Some(Value::Null) => read_json(json_data.iter()
-            .map(|value| serde_json::from_value::<Packet>(value.clone())
-                .unwrap())
-            .collect::<Vec<Packet>>()),
-        _ => Err("Invalid JSON data provided")
+        None | Some(Value::Null) => read_json(
+            json_data
+                .iter()
+                .map(|value| serde_json::from_value::<Packet>(value.clone()).unwrap())
+                .collect::<Vec<Packet>>(),
+        ),
+        _ => Err("Invalid JSON data provided"),
     }
 }
 
@@ -386,7 +385,7 @@ fn read_json(data: Vec<Packet>) -> Result<Vec<VisualPacket>, &'static str> {
             length: packet.data.len() as u64,
             data: serde_json::to_string(&decoded).unwrap(),
             binary: packet.data.clone(),
-            index: packets.len() as u32
+            index: packets.len() as u32,
         });
     }
 
@@ -394,8 +393,8 @@ fn read_json(data: Vec<Packet>) -> Result<Vec<VisualPacket>, &'static str> {
 }
 
 mod src_string {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use ys_sniffer::PacketSource;
-    use serde::{Serialize, Deserialize, Serializer, Deserializer};
 
     pub fn serialize<S: Serializer>(source: &PacketSource, s: S) -> Result<S::Ok, S::Error> {
         String::serialize(&source.to_string().to_lowercase(), s)
@@ -406,7 +405,7 @@ mod src_string {
         match string.as_str() {
             "client" => Ok(PacketSource::Client),
             "server" => Ok(PacketSource::Server),
-            _ => Err(serde::de::Error::custom("invalid packet source"))
+            _ => Err(serde::de::Error::custom("invalid packet source")),
         }
     }
 }

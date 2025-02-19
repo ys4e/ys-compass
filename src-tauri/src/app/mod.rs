@@ -1,6 +1,6 @@
-use tauri::AppHandle;
 use crate::events;
 use crate::events::Event;
+use tauri::AppHandle;
 
 pub mod appearance;
 pub mod game;

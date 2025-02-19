@@ -1,15 +1,16 @@
 import { Route, Routes } from "react-router-dom";
 
-import useBackground from "@hooks/appearance/useBackground.ts";
+import { SidebarProvider } from "@shad/sidebar.tsx";
 
 import Home from "@pages/launcher/Home.tsx";
+import VersionManager from "@pages/launcher/VersionManager.tsx";
 
 import AppStatusBar from "@components/AppStatusBar.tsx";
+import NavigationSideBar from "@components/launcher/NavigationSideBar.tsx";
+
+import useBackground from "@hooks/appearance/useBackground.ts";
 
 import "@css/Launcher.scss";
-import VersionManager from "@pages/launcher/VersionManager.tsx";
-import NavigationSideBar from "@components/launcher/NavigationSideBar.tsx";
-import { SidebarProvider } from "@shad/sidebar.tsx";
 
 /**
  * This is the main part of the application.
@@ -23,7 +24,7 @@ function Launcher() {
             <div
                 id={"page__launcher"}
                 style={{
-                    background: bgPath ? `url(${bgPath})` : undefined,
+                    background: bgPath ? `url(${bgPath})` : undefined
                 }}
             >
                 <NavigationSideBar />
@@ -34,7 +35,10 @@ function Launcher() {
                     <div id={"main-content"}>
                         <Routes>
                             <Route path={"/"} element={<Home />} />
-                            <Route path={"/versions"} element={<VersionManager />} />
+                            <Route
+                                path={"/versions"}
+                                element={<VersionManager />}
+                            />
                         </Routes>
                     </div>
                 </div>

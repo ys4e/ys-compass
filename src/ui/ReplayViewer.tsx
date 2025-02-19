@@ -1,18 +1,23 @@
-import { Timeline, TimelineEffect, TimelineRow } from "@xzdarcy/react-timeline-editor";
+import {
+    Timeline,
+    TimelineEffect,
+    TimelineRow
+} from "@xzdarcy/react-timeline-editor";
 
 import "@css/ReplayViewer.scss";
 
-const mockData: TimelineRow[] = [{
-    id: "0",
-    actions: [
-        {
-            id: "action00",
-            start: 0,
-            end: 2,
-            effectId: "effect0",
-        },
-    ],
-},
+const mockData: TimelineRow[] = [
+    {
+        id: "0",
+        actions: [
+            {
+                id: "action00",
+                start: 0,
+                end: 2,
+                effectId: "effect0"
+            }
+        ]
+    },
     {
         id: "1",
         actions: [
@@ -20,27 +25,26 @@ const mockData: TimelineRow[] = [{
                 id: "action10",
                 start: 1.5,
                 end: 5,
-                effectId: "effect1",
+                effectId: "effect1"
             }
-        ],
-    }]
+        ]
+    }
+];
 
 const mockEffect: Record<string, TimelineEffect> = {
     effect0: {
         id: "effect0",
-        name: "test",
+        name: "test"
     },
     effect1: {
         id: "effect1",
-        name: "test",
-    },
+        name: "test"
+    }
 };
 
 function ReplayViewer() {
     return (
-        <div
-            id={"app"}
-        >
+        <div id={"app"}>
             <Timeline
                 style={{
                     width: "100%",

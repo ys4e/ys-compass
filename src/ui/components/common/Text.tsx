@@ -1,7 +1,10 @@
-import { CSSProperties } from "react";
-import useTranslation from "@hooks/useTranslation.ts";
-import { TranslateArguments } from "@backend/Language.ts";
 import classNames from "classnames";
+
+import { CSSProperties } from "react";
+
+import useTranslation from "@hooks/useTranslation.ts";
+
+import { TranslateArguments } from "@backend/Language.ts";
 
 interface IProps {
     children: string;
@@ -19,13 +22,12 @@ interface IProps {
  */
 function Text(props: IProps) {
     const text = useTranslation(props.children, props.args);
-    
+
     return (
         <span
             className={classNames(
                 // Default text theme.
-                props.theme == "secondary" ?
-                    "text-secondary" : "text-primary",
+                props.theme == "secondary" ? "text-secondary" : "text-primary",
                 // Other specified class names.
                 props.className
             )}

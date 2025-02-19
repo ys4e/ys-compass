@@ -2,7 +2,6 @@
     "arrowParens": "always",
     "bracketSpacing": true,
     "jsxSingleQuote": false,
-    "bracket-same-line": false,
     "semi": true,
     "singleQuote": false,
     "tabWidth": 4,

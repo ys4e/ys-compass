@@ -1,7 +1,9 @@
-import { Colors } from "@backend/types.ts";
 import { useEffect, useState } from "react";
+
 import useBackground from "@hooks/appearance/useBackground.ts";
+
 import Appearance from "@backend/Appearance.ts";
+import { Colors } from "@backend/types.ts";
 
 function useColorScheme(): Colors {
     const [palette, setPalette] = useState<Colors>({
@@ -18,8 +20,7 @@ function useColorScheme(): Colors {
     useEffect(() => {
         if (backgroundPath == undefined) return;
 
-        Appearance.getColorScheme(backgroundPath)
-            .then(setPalette);
+        Appearance.getColorScheme(backgroundPath).then(setPalette);
     }, [backgroundPath]);
 
     return palette;

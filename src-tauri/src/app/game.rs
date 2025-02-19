@@ -1,5 +1,6 @@
-use std::path::PathBuf;
-use std::sync::MutexGuard;
+use crate::config::Config;
+use crate::utils::MaybeError;
+use crate::{database, system, utils, GLOBAL_STATE};
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use lazy_static::lazy_static;
@@ -7,21 +8,21 @@ use log::warn;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::Error;
+use std::path::PathBuf;
+use std::sync::MutexGuard;
 use tauri::State;
 use tokio::sync::RwLock;
-use crate::config::Config;
-use crate::{database, system, utils, GLOBAL_STATE};
-use crate::utils::MaybeError;
 
+use crate::state::SelectedProfile;
 #[cfg(windows)]
 use crate::{sys_str, system::AsCString};
 #[cfg(windows)]
 use windows::Win32::{Foundation::HANDLE, System::Threading::LPTHREAD_START_ROUTINE};
-use crate::state::SelectedProfile;
 
 lazy_static! {
     static ref GAME_MANAGER: RwLock<GameManager> = RwLock::new(GameManager::default());
-    static ref VERSION_STRING_REGEX: Regex = Regex::new(r"(OS|CN)(REL|CB)Win([1-9])\.([0-9])\.([0-9]*)").unwrap();
+    static ref VERSION_STRING_REGEX: Regex =
+        Regex::new(r"(OS|CN)(REL|CB)Win([1-9])\.([0-9])\.([0-9]*)").unwrap();
 }
 
 /// A game launch profile.
@@ -33,7 +34,7 @@ pub struct Profile {
     pub version: Version,
     pub tools: Vec<Tool>,
     pub mods: Vec<Mod>,
-    pub launch_args: String
+    pub launch_args: String,
 }
 
 impl Profile {
@@ -44,12 +45,16 @@ impl Profile {
         let pool = database::get_pool();
 
         // Convert tools and mods to a string.
-        let tools = self.tools.iter()
+        let tools = self
+            .tools
+            .iter()
             .map(|tool| tool.id.clone())
             .collect::<Vec<String>>()
             .join(",");
 
-        let mods = self.mods.iter()
+        let mods = self
+            .mods
+            .iter()
             .map(|r#mod| r#mod.id.clone())
             .collect::<Vec<String>>()
             .join(",");
@@ -67,7 +72,10 @@ impl Profile {
 
 /// Creates a new game profile.
 #[tauri::command]
-pub async fn game__new_profile(state: State<'_, SelectedProfile>, profile: Profile) -> MaybeError<()> {
+pub async fn game__new_profile(
+    state: State<'_, SelectedProfile>,
+    profile: Profile,
+) -> MaybeError<()> {
     // Save the profile.
     if let Err(error) = profile.save().await {
         warn!("Failed to save profile: {}", error);
@@ -99,7 +107,7 @@ pub struct Tool {
     pub id: String,
     pub name: String,
     pub icon: String,
-    pub path: String
+    pub path: String,
 }
 
 /// A game modification.
@@ -112,14 +120,14 @@ pub struct Mod {
     pub icon: String,
     pub path: String,
     pub version: String,
-    pub tool: Tool
+    pub tool: Tool,
 }
 
 /// A game version.
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Version {
     pub version: String,
-    pub path: String
+    pub path: String,
 }
 
 impl Version {
@@ -133,8 +141,11 @@ impl Version {
             r#"INSERT INTO `versions` (`version`, `path`) VALUES
             ($1, $2) ON CONFLICT(`version`) DO UPDATE SET
             `path` = $2"#,
-            self.version, self.path
-        ).execute(&pool).await?;
+            self.version,
+            self.path
+        )
+        .execute(&pool)
+        .await?;
 
         Ok(())
     }
@@ -152,7 +163,7 @@ pub struct GameManager {
     pub profiles: Vec<Profile>,
     pub versions: Vec<Version>,
     pub tools: Vec<Tool>,
-    pub mods: Vec<Mod>
+    pub mods: Vec<Mod>,
 }
 
 impl GameManager {
@@ -167,9 +178,7 @@ impl GameManager {
     pub fn get_profile<S: AsRef<str>>(&self, profile_id: S) -> Option<Profile> {
         let profile_id = profile_id.as_ref();
 
-        self.profiles.iter()
-            .find(|p| p.id.eq(profile_id))
-            .cloned()
+        self.profiles.iter().find(|p| p.id.eq(profile_id)).cloned()
     }
 
     /// Saves the given profile to the database.
@@ -198,7 +207,7 @@ impl GameManager {
 
         // Get tools from the database.
         let Ok(results) = sqlx::query!("SELECT * FROM `tools`").fetch_all(&pool).await else {
-            return Err(anyhow!("Unable to query database for tools."))
+            return Err(anyhow!("Unable to query database for tools."));
         };
 
         // Parse tools.
@@ -208,7 +217,7 @@ impl GameManager {
                 id: result.id,
                 name: result.name,
                 icon: result.icon,
-                path: result.path
+                path: result.path,
             });
         }
 
@@ -223,14 +232,13 @@ impl GameManager {
 
         // Get mods from the database.
         let Ok(results) = sqlx::query!("SELECT * FROM `mods`").fetch_all(&pool).await else {
-            return Err(anyhow!("Unable to query database for mods."))
+            return Err(anyhow!("Unable to query database for mods."));
         };
 
         // Parse mods.
         self.mods.clear();
         for result in results {
-            let Some(tool) = self.tools.iter()
-                .find(|tool| tool.id == result.tool) else {
+            let Some(tool) = self.tools.iter().find(|tool| tool.id == result.tool) else {
                 warn!("Tool {} not found for mod: {}.", result.tool, result.id);
                 continue;
             };
@@ -241,7 +249,7 @@ impl GameManager {
                 icon: result.icon,
                 path: result.path,
                 version: result.version,
-                tool: tool.clone()
+                tool: tool.clone(),
             });
         }
 
@@ -253,8 +261,11 @@ impl GameManager {
         let pool = database::get_pool();
 
         // Get versions from the database.
-        let Ok(results) = sqlx::query!("SELECT * FROM `versions`").fetch_all(&pool).await else {
-            return Err(anyhow!("Unable to query database for versions."))
+        let Ok(results) = sqlx::query!("SELECT * FROM `versions`")
+            .fetch_all(&pool)
+            .await
+        else {
+            return Err(anyhow!("Unable to query database for versions."));
         };
 
         // Parse versions.
@@ -262,7 +273,7 @@ impl GameManager {
         for result in results {
             self.versions.push(Version {
                 version: result.version,
-                path: result.path
+                path: result.path,
             });
         }
 
@@ -279,16 +290,21 @@ impl GameManager {
         let pool = database::get_pool();
 
         // Get profiles from the database.
-        let Ok(results) = sqlx::query!("SELECT * FROM `profiles`").fetch_all(&pool).await else {
-            return Err(anyhow!("Unable to query database for profiles."))
+        let Ok(results) = sqlx::query!("SELECT * FROM `profiles`")
+            .fetch_all(&pool)
+            .await
+        else {
+            return Err(anyhow!("Unable to query database for profiles."));
         };
 
         // Parse profiles.
         self.profiles.clear();
         for result in results {
-            let Some(version) = self.versions.iter()
-                .find(|v| v.version.eq(&result.version)) else {
-                warn!("Version {} not found for profile: {}.", result.version, result.id);
+            let Some(version) = self.versions.iter().find(|v| v.version.eq(&result.version)) else {
+                warn!(
+                    "Version {} not found for profile: {}.",
+                    result.version, result.id
+                );
                 continue;
             };
 
@@ -303,15 +319,14 @@ impl GameManager {
                         let mut tools = Vec::new();
 
                         for id in ids {
-                            if let Some(tool) = self.tools.iter()
-                                .find(|tool| tool.id == id) {
+                            if let Some(tool) = self.tools.iter().find(|tool| tool.id == id) {
                                 tools.push(tool.clone());
                             }
                         }
 
                         tools
-                    },
-                    None => Vec::new()
+                    }
+                    None => Vec::new(),
                 },
                 mods: match result.mods {
                     Some(mods) => {
@@ -319,17 +334,16 @@ impl GameManager {
                         let mut mods = Vec::new();
 
                         for id in ids {
-                            if let Some(r#mod) = self.mods.iter()
-                                .find(|m| m.id == id) {
+                            if let Some(r#mod) = self.mods.iter().find(|m| m.id == id) {
                                 mods.push(r#mod.clone());
                             }
                         }
 
                         mods
-                    },
-                    None => Vec::new()
+                    }
+                    None => Vec::new(),
                 },
-                launch_args: result.launch_args
+                launch_args: result.launch_args,
             };
 
             self.profiles.push(profile);
@@ -434,11 +448,13 @@ pub async fn locate_game(path: String) -> MaybeError<()> {
 
     // If a `UnityPlayer.dll` is found, use it for the version string lookup.
     let unity_player = parent.join("UnityPlayer.dll");
-    let game_data = match std::fs::read(
-        if unity_player.exists() { unity_player } else { executable_path }
-    ) {
+    let game_data = match std::fs::read(if unity_player.exists() {
+        unity_player
+    } else {
+        executable_path
+    }) {
         Ok(data) => data,
-        Err(_) => return Err("backend.version.resolve.error")
+        Err(_) => return Err("backend.version.resolve.error"),
     };
     let game_data = String::from_utf8_lossy(&game_data);
 
@@ -455,16 +471,22 @@ pub async fn locate_game(path: String) -> MaybeError<()> {
     let pool = database::get_pool();
 
     // Check if the version already exists.
-    match sqlx::query!("SELECT * FROM `versions` WHERE `version` = $1", version_string).fetch_one(&pool).await {
+    match sqlx::query!(
+        "SELECT * FROM `versions` WHERE `version` = $1",
+        version_string
+    )
+    .fetch_one(&pool)
+    .await
+    {
         Err(Error::RowNotFound) => (),
         Ok(_) => return Err("backend.version.resolve.exists"),
-        _ => return Err("database.query-failed")
+        _ => return Err("database.query-failed"),
     }
 
     // Otherwise, insert the version.
     let version = Version {
         version: version_string.to_string(),
-        path
+        path,
     };
 
     if let Err(error) = version.save().await {
@@ -527,18 +549,20 @@ fn launch_game(profile: &Profile, config: MutexGuard<'_, Config>) -> MaybeError<
         let kernel = "kernel32.dll".as_cstring();
         let kernel = match GetModuleHandleA(sys_str!(kernel)) {
             Ok(handle) => handle,
-            Err(_) => return Err("game.error.launch.unknown")
+            Err(_) => return Err("game.error.launch.unknown"),
         };
 
         let load_library = "LoadLibraryA".as_cstring();
         match GetProcAddress(kernel, sys_str!(load_library)) {
             Some(ptr) => std::mem::transmute::<_, LPTHREAD_START_ROUTINE>(ptr),
-            None => return Err("game.error.launch.dll-fail")
+            None => return Err("game.error.launch.dll-fail"),
         }
     };
 
     if !disable_ac {
-        unsafe { suspend(&process)?; }
+        unsafe {
+            suspend(&process)?;
+        }
     }
 
     // Inject all DLLs in the configuration.
@@ -569,13 +593,15 @@ fn launch_game(profile: &Profile, config: MutexGuard<'_, Config>) -> MaybeError<
                 if let Err(error) = system::open_executable(&path, None) {
                     warn!("{} {:?}", t!("game.error.launch.exe-fail"), error)
                 }
-            },
-            _ => warn!("{}: '{}'", t!("game.error.launch.unknown-tool"), tool.name)
+            }
+            _ => warn!("{}: '{}'", t!("game.error.launch.unknown-tool"), tool.name),
         }
     }
 
     if !disable_ac {
-        unsafe { resume(&process)?; }
+        unsafe {
+            resume(&process)?;
+        }
     }
 
     // Finally, clean up any left-over handles.
@@ -601,13 +627,13 @@ unsafe fn suspend(process: &HANDLE) -> MaybeError<()> {
     let nt = "ntdll".as_cstring();
     let nt_module = match GetModuleHandleA(sys_str!(nt)) {
         Ok(handle) => handle,
-        Err(_) => return Err("game.error.launch.unknown")
+        Err(_) => return Err("game.error.launch.unknown"),
     };
 
     let suspend = "NtSuspendProcess".as_cstring();
     let ptr = match GetProcAddress(nt_module, sys_str!(suspend)) {
         Some(ptr) => ptr,
-        None => return Err("game.error.launch.unknown")
+        None => return Err("game.error.launch.unknown"),
     };
 
     // Call the function.
@@ -627,13 +653,13 @@ unsafe fn resume(process: &HANDLE) -> MaybeError<()> {
     let nt = "ntdll".as_cstring();
     let nt_module = match GetModuleHandleA(sys_str!(nt)) {
         Ok(handle) => handle,
-        Err(_) => return Err("game.error.launch.unknown")
+        Err(_) => return Err("game.error.launch.unknown"),
     };
 
     let resume = "NtResumeProcess".as_cstring();
     let ptr = match GetProcAddress(nt_module, sys_str!(resume)) {
         Some(ptr) => ptr,
-        None => return Err("game.error.launch.unknown")
+        None => return Err("game.error.launch.unknown"),
     };
 
     // Call the function.
@@ -648,14 +674,14 @@ unsafe fn resume(process: &HANDLE) -> MaybeError<()> {
 /// This returns the handles of the thread and process.
 #[cfg(windows)]
 fn open_game(path: &String, launch_args: &str) -> Result<(HANDLE, HANDLE), &'static str> {
-    use sysinfo::System;
     use std::mem::size_of;
+    use sysinfo::System;
     use windows::Win32::Foundation::HANDLE;
 
     // Get token to open process.
     let token = unsafe {
         use windows::Win32::Security::TOKEN_ALL_ACCESS;
-        use windows::Win32::System::Threading::{OpenProcessToken, GetCurrentProcess};
+        use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
         // Check for proper elevation & to gain a token.
         let mut token = HANDLE::default();
@@ -684,7 +710,7 @@ fn open_game(path: &String, launch_args: &str) -> Result<(HANDLE, HANDLE), &'sta
         use windows::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
         match OpenProcess(PROCESS_ALL_ACCESS, false, explorer) {
             Ok(handle) => handle,
-            Err(_) => return Err("game.error.launch.no-parent")
+            Err(_) => return Err("game.error.launch.no-parent"),
         }
     };
 
@@ -695,11 +721,8 @@ fn open_game(path: &String, launch_args: &str) -> Result<(HANDLE, HANDLE), &'sta
     unsafe {
         use windows::core::PSTR;
         use windows::Win32::System::Threading::{
-            PROCESS_INFORMATION,
+            CreateProcessAsUserA, EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION, STARTUPINFOA,
             STARTUPINFOEXA,
-            STARTUPINFOA,
-            CreateProcessAsUserA,
-            EXTENDED_STARTUPINFO_PRESENT
         };
 
         let mut process_info: PROCESS_INFORMATION = Default::default();
@@ -708,7 +731,7 @@ fn open_game(path: &String, launch_args: &str) -> Result<(HANDLE, HANDLE), &'sta
                 cb: size_of::<STARTUPINFOEXA>() as u32,
                 ..Default::default()
             },
-            lpAttributeList: Default::default()
+            lpAttributeList: Default::default(),
         };
 
         // Create the process.
@@ -723,12 +746,14 @@ fn open_game(path: &String, launch_args: &str) -> Result<(HANDLE, HANDLE), &'sta
             Some(token),
             sys_str!(path),
             Some(PSTR(arguments.as_ptr() as *mut u8)),
-            None, None,
+            None,
+            None,
             false,
             EXTENDED_STARTUPINFO_PRESENT,
-            None, None,
+            None,
+            None,
             &mut start_info as *mut _ as *mut _,
-            &mut process_info
+            &mut process_info,
         );
 
         // Check if the process was created.
@@ -746,7 +771,11 @@ fn open_game(path: &String, launch_args: &str) -> Result<(HANDLE, HANDLE), &'sta
 /// This works by suspending the process until the anti-cheat driver is unloaded.
 #[cfg(windows)]
 unsafe fn wait_for_driver(process: &HANDLE) -> MaybeError<()> {
-    use std::{ffi::c_void, mem::{size_of, size_of_val}, ptr};
+    use std::{
+        ffi::c_void,
+        mem::{size_of, size_of_val},
+        ptr,
+    };
     use windows::Win32::System::ProcessStatus::{EnumDeviceDrivers, GetDeviceDriverBaseNameA};
 
     unsafe fn driver_loaded() -> MaybeError<bool> {
@@ -808,11 +837,17 @@ unsafe fn wait_for_driver(process: &HANDLE) -> MaybeError<()> {
 ///
 /// This uses `LoadLibrary` provided by the Windows API.
 #[cfg(windows)]
-unsafe fn inject_dll(process: &HANDLE, load_library: LPTHREAD_START_ROUTINE, dll_path: String) -> MaybeError<()> {
+unsafe fn inject_dll(
+    process: &HANDLE,
+    load_library: LPTHREAD_START_ROUTINE,
+    dll_path: String,
+) -> MaybeError<()> {
     use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
     use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
+    use windows::Win32::System::Memory::{
+        VirtualAllocEx, VirtualFreeEx, MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE,
+    };
     use windows::Win32::System::Threading::{CreateRemoteThread, WaitForSingleObject};
-    use windows::Win32::System::Memory::{VirtualAllocEx, VirtualFreeEx, MEM_RESERVE, MEM_COMMIT, MEM_RELEASE, PAGE_READWRITE};
 
     let path_length = dll_path.len() + 1;
 
@@ -825,7 +860,7 @@ unsafe fn inject_dll(process: &HANDLE, load_library: LPTHREAD_START_ROUTINE, dll
         None,
         path_length,
         MEM_RESERVE | MEM_COMMIT,
-        PAGE_READWRITE
+        PAGE_READWRITE,
     );
 
     // Write the DLL path to the process.
@@ -834,20 +869,16 @@ unsafe fn inject_dll(process: &HANDLE, load_library: LPTHREAD_START_ROUTINE, dll
         dll_path,
         path.as_ptr() as *const _,
         path_length,
-        None
-    ).is_err() {
+        None,
+    )
+    .is_err()
+    {
         return Err("game.error.launch.dll-fail");
     };
 
     // Invoke the LoadLibrary function.
-    let Ok(thread) = CreateRemoteThread(
-        *process,
-        None,
-        0,
-        load_library,
-        Some(dll_path),
-        0, None
-    ) else {
+    let Ok(thread) = CreateRemoteThread(*process, None, 0, load_library, Some(dll_path), 0, None)
+    else {
         // Free the memory.
         _ = VirtualFreeEx(*process, dll_path, 0, MEM_RELEASE);
 

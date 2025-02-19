@@ -1,27 +1,32 @@
-import { MutableRefObject, useEffect, useRef, useState } from "react";
-
-import { FixedSizeList } from "react-window";
 import { Item, ItemParams, Menu, Separator } from "react-contexify";
+import {
+    IoMdArrowDown,
+    IoMdClose,
+    IoMdCloudUpload,
+    IoMdSave
+} from "react-icons/io";
 import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeList } from "react-window";
+
 import classNames from "classnames";
 
-import { IoMdArrowDown, IoMdClose, IoMdCloudUpload, IoMdSave } from "react-icons/io";
+import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 
-import Button from "@components/common/Button.tsx";
 import JSONEditor from "@components/JSONEditor.tsx";
+import Button from "@components/common/Button.tsx";
 import Packet from "@components/visualizer/Packet.tsx";
 
 import useConfig from "@stores/config.ts";
 
-import useViewport from "@hooks/visualizer/useViewport.ts";
 import usePacketList from "@hooks/visualizer/usePacketList.ts";
+import useViewport from "@hooks/visualizer/useViewport.ts";
 
+import Global from "@backend/Global.ts";
 import type { Packet as PacketType } from "@backend/types.ts";
 
 import "@css/pages/PacketVisualizer.scss";
-import { open } from "@tauri-apps/plugin-dialog";
-import Global from "@backend/Global.ts";
-import { invoke } from "@tauri-apps/api/core";
 
 /// <editor-fold desc="Filtering">
 type ComplexFilters = {
@@ -36,17 +41,17 @@ type ComplexFilters = {
  * filter - packet name filter
  * jsonFilter - packet content filter
  */
-function packetFilter(
-    {
-        data: { packetId, packetName, length, data },
-        textFilter, jsonFilter, orand
-    }: {
-        data: PacketType;
-        textFilter: string;
-        jsonFilter: string;
-        orand: boolean; // When true, both filters must match.
-    }
-) {
+function packetFilter({
+    data: { packetId, packetName, length, data },
+    textFilter,
+    jsonFilter,
+    orand
+}: {
+    data: PacketType;
+    textFilter: string;
+    jsonFilter: string;
+    orand: boolean; // When true, both filters must match.
+}) {
     // Compare the packet's name and ID to the filter.
     const filterResult =
         textFilter.trim().length == 0 ||
@@ -57,13 +62,13 @@ function packetFilter(
     const filters: ComplexFilters = {};
     let parsedFilter = jsonFilter.trim();
     if (parsedFilter.startsWith("@")) {
-        let parts = parsedFilter.split(";").map(v => v.trim());
+        let parts = parsedFilter.split(";").map((v) => v.trim());
         parsedFilter = parts[parts.length - 1];
 
         parts = parts.slice(0, parts.length - 1);
         for (const part of parts) {
             const action = part.substring(1);
-            const segments = action.split(".").map(v => v.trim());
+            const segments = action.split(".").map((v) => v.trim());
             switch (segments[0]) {
                 case "some":
                     filters.matchAll = false;
@@ -81,25 +86,24 @@ function packetFilter(
     try {
         parsed = JSON.parse(parsedFilter);
     } catch (e) {
-        parsed = parsedFilter
-            .split(",")
-            .map((v: string) => v.trim());
+        parsed = parsedFilter.split(",").map((v: string) => v.trim());
     }
 
     let jsonResult = false;
     try {
-        jsonResult = jsonFilter.trim().length == 0 ||
-        (
-            recursiveCompare(JSON.parse(data), parsed, filters.matchAll ?? true) &&
-            (filters.length != undefined ? length >= filters.length : true)
-        );
-    } catch {
+        jsonResult =
+            jsonFilter.trim().length == 0 ||
+            (recursiveCompare(
+                JSON.parse(data),
+                parsed,
+                filters.matchAll ?? true
+            ) &&
+                (filters.length != undefined
+                    ? length >= filters.length
+                    : true));
+    } catch {}
 
-    }
-
-    return orand ?
-        filterResult && jsonResult :
-        filterResult || jsonResult;
+    return orand ? filterResult && jsonResult : filterResult || jsonResult;
 }
 
 /**
@@ -136,7 +140,8 @@ function allValues(data: any): any[] {
  * @param matchAll Should all filters match to return true?
  */
 function recursiveCompare(
-    data: object, filters: any[],
+    data: object,
+    filters: any[],
     matchAll: boolean = true
 ): boolean {
     const values = allValues(data);
@@ -150,9 +155,7 @@ function recursiveCompare(
         passed.push(values.includes(filterVal));
     }
 
-    return matchAll ?
-        passed.every(v => v) :
-        passed.some(v => v);
+    return matchAll ? passed.every((v) => v) : passed.some((v) => v);
 }
 /// </editor-fold>
 
@@ -162,7 +165,9 @@ function recursiveCompare(
 async function copyPacket({ id, props }: ItemParams<{ packet: PacketType }>) {
     if (props == undefined) {
         alert("Failed to copy packet to clipboard.");
-        console.error("Failed to copy packet to clipboard: props is undefined.");
+        console.error(
+            "Failed to copy packet to clipboard: props is undefined."
+        );
         return;
     }
     const { packet } = props;
@@ -170,10 +175,18 @@ async function copyPacket({ id, props }: ItemParams<{ packet: PacketType }>) {
     try {
         let data = "Unknown copy action.";
         switch (id) {
-            case "copy": data = packet.data; break;
-            case "copy-raw": data = packet.binary ?? packet.data; break;
-            case "copy-name": data = packet.packetName; break;
-            case "copy-id": data = packet.packetId.toString(); break;
+            case "copy":
+                data = packet.data;
+                break;
+            case "copy-raw":
+                data = packet.binary ?? packet.data;
+                break;
+            case "copy-name":
+                data = packet.packetName;
+                break;
+            case "copy-id":
+                data = packet.packetId.toString();
+                break;
             case "copy-header":
                 data = `// CmdId: ${packet.packetId}\n// Obf: ${packet.packetName}`;
                 break;
@@ -230,26 +243,34 @@ function PacketList(props: IListProps) {
 
                 props.listRef.current = ref;
             }}
-            height={props.height - padding} width={props.width}
-            itemSize={34} itemCount={packets.length}
+            height={props.height - padding}
+            width={props.width}
+            itemSize={34}
+            itemCount={packets.length}
         >
-            { ({ index, style }) => {
+            {({ index, style }) => {
                 const data = packets[index];
                 const usedIndex = data.index ?? index;
 
-                return <Packet
-                    onClick={() => {
-                        if (props.isFiltered) {
-                            props.listRef.current?.scrollToItem(usedIndex, "start");
-                        }
-                        props.setSelected(usedIndex);
-                        props.setContent(JSON.parse(data.data));
-                    }}
-                    index={usedIndex} style={style}
-                    selected={usedIndex == props.selected}
-                    data={data}
-                />;
-            } }
+                return (
+                    <Packet
+                        onClick={() => {
+                            if (props.isFiltered) {
+                                props.listRef.current?.scrollToItem(
+                                    usedIndex,
+                                    "start"
+                                );
+                            }
+                            props.setSelected(usedIndex);
+                            props.setContent(JSON.parse(data.data));
+                        }}
+                        index={usedIndex}
+                        style={style}
+                        selected={usedIndex == props.selected}
+                        data={data}
+                    />
+                );
+            }}
         </FixedSizeList>
     );
 }
@@ -283,9 +304,13 @@ function PacketVisualizer() {
         if (!body) return;
 
         const box = body.getBoundingClientRect();
-        const newWidth = Math.min(Math.max(100 - (
-            ((event.clientX - box.left) / body.offsetWidth) * 100
-        ), 10), 50);
+        const newWidth = Math.min(
+            Math.max(
+                100 - ((event.clientX - box.left) / body.offsetWidth) * 100,
+                10
+            ),
+            50
+        );
 
         setEditorWidth(newWidth);
     };
@@ -305,17 +330,18 @@ function PacketVisualizer() {
 
     useEffect(() => {
         if (!nameFilter && !jsonFilter) return;
-        setFilteredPackets(packets
-            .map(packet => {
-                const result = packetFilter({
-                    data: packet,
-                    textFilter: nameFilter ?? "",
-                    jsonFilter: jsonFilter ?? "",
-                    orand: searchBoth
-                });
-                return result ? packet : undefined;
-            })
-            .filter(result => result != undefined)
+        setFilteredPackets(
+            packets
+                .map((packet) => {
+                    const result = packetFilter({
+                        data: packet,
+                        textFilter: nameFilter ?? "",
+                        jsonFilter: jsonFilter ?? "",
+                        orand: searchBoth
+                    });
+                    return result ? packet : undefined;
+                })
+                .filter((result) => result != undefined)
         );
     }, [packets, nameFilter, jsonFilter, searchBoth]);
 
@@ -350,12 +376,16 @@ function PacketVisualizer() {
                             const data = JSON.stringify(packets, null, 4);
 
                             const download = document.createElement("a");
-                            download.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+                            download.href = URL.createObjectURL(
+                                new Blob([data], { type: "application/json" })
+                            );
                             download.download = "packets.json";
                             download.click();
                             download.remove();
 
-                            console.log("Packets have been saved as 'packets.json'.");
+                            console.log(
+                                "Packets have been saved as 'packets.json'."
+                            );
                         }}
                         tooltip={"Save all packets as a JSON file"}
                     >
@@ -369,7 +399,12 @@ function PacketVisualizer() {
                             try {
                                 // Prompt user to select a file.
                                 const selected = await open({
-                                    filters: [{ name: "Packet Dumps", extensions: ["json"] }]
+                                    filters: [
+                                        {
+                                            name: "Packet Dumps",
+                                            extensions: ["json"]
+                                        }
+                                    ]
                                 });
 
                                 // Check if the user selected a file.
@@ -396,10 +431,9 @@ function PacketVisualizer() {
 
                     <Button
                         id={"visualizer-scroll"}
-                        className={classNames(
-                            "bg-aqua hover:brightness-150",
-                            { "bg-green-600": lockScroll }
-                        )}
+                        className={classNames("bg-aqua hover:brightness-150", {
+                            "bg-green-600": lockScroll
+                        })}
                         onClick={() => setLockScroll(!lockScroll)}
                     >
                         <IoMdArrowDown />
@@ -411,16 +445,13 @@ function PacketVisualizer() {
                 id={"visualizer-content"}
                 className={"flex flex-col flex-grow h-full bg-black-200"}
             >
-                <div
-                    id={"visualizer-search"}
-                    className={"flex flex-row"}
-                >
+                <div id={"visualizer-search"} className={"flex flex-row"}>
                     <input
                         placeholder={"🔍 Packet Name"}
                         className={"Visualizer_Input"}
                         onChange={({ target: { value } }) => {
                             const text = value.trim();
-                            setNameFilter(text.length != 0 ? text : undefined)
+                            setNameFilter(text.length != 0 ? text : undefined);
                         }}
                     />
 
@@ -428,8 +459,16 @@ function PacketVisualizer() {
                         className={"Visualizer_Mode"}
                         onClick={() => setSearchBoth(!searchBoth)}
                     >
-                        <span className={searchBoth ? "!bg-blue-400" : undefined}>and</span>
-                        <span className={!searchBoth ? "!bg-blue-400" : undefined}>or</span>
+                        <span
+                            className={searchBoth ? "!bg-blue-400" : undefined}
+                        >
+                            and
+                        </span>
+                        <span
+                            className={!searchBoth ? "!bg-blue-400" : undefined}
+                        >
+                            or
+                        </span>
                     </div>
 
                     <input
@@ -437,13 +476,17 @@ function PacketVisualizer() {
                         className={"Visualizer_Input"}
                         onChange={({ target: { value } }) => {
                             const text = value.trim();
-                            setJsonFilter(text.length != 0 ? text : undefined)
+                            setJsonFilter(text.length != 0 ? text : undefined);
                         }}
                     />
                 </div>
 
-                { jsonFilter || nameFilter ? (
-                    <div className={"flex flex-col bg-black-900 border-b-white border-b-2"}>
+                {jsonFilter || nameFilter ? (
+                    <div
+                        className={
+                            "flex flex-col bg-black-900 border-b-white border-b-2"
+                        }
+                    >
                         <Labels />
 
                         <AutoSizer disableWidth={false} disableHeight={false}>
@@ -465,7 +508,7 @@ function PacketVisualizer() {
 
                         <div style={{ height: viewportHeight * 0.3 }} />
                     </div>
-                ) : undefined }
+                ) : undefined}
 
                 <Labels />
 
@@ -481,7 +524,10 @@ function PacketVisualizer() {
                             setContent={setContent}
                             selected={selected}
                             withPadding={true}
-                            filterShown={jsonFilter != undefined || nameFilter != undefined}
+                            filterShown={
+                                jsonFilter != undefined ||
+                                nameFilter != undefined
+                            }
                         />
                     )}
                 </AutoSizer>
@@ -498,31 +544,35 @@ function PacketVisualizer() {
                 }}
             />
 
-            <div
-                id={"visualizer-editor"}
-                style={{ width: `${editorWidth}%` }}
-            >
-                { jsonContent == undefined ?
-                    <></> :
+            <div id={"visualizer-editor"} style={{ width: `${editorWidth}%` }}>
+                {jsonContent == undefined ? (
+                    <></>
+                ) : (
                     <JSONEditor
                         readOnly={true}
                         content={{ json: jsonContent }}
                         className={"w-full h-full"}
                     />
-                }
+                )}
             </div>
 
-            <Menu
-                className={"!scale-90"}
-                id={"visualizer-menu"}
-                theme={"dark"}
-            >
-                <Item id={"copy"} onClick={copyPacket}>Copy</Item>
-                <Item id={"copy-raw"} onClick={copyPacket}>Copy Binary Data</Item>
+            <Menu className={"!scale-90"} id={"visualizer-menu"} theme={"dark"}>
+                <Item id={"copy"} onClick={copyPacket}>
+                    Copy
+                </Item>
+                <Item id={"copy-raw"} onClick={copyPacket}>
+                    Copy Binary Data
+                </Item>
                 <Separator />
-                <Item id={"copy-name"} onClick={copyPacket}>Copy Name</Item>
-                <Item id={"copy-id"} onClick={copyPacket}>Copy ID</Item>
-                <Item id={"copy-header"} onClick={copyPacket}>Copy as Header</Item>
+                <Item id={"copy-name"} onClick={copyPacket}>
+                    Copy Name
+                </Item>
+                <Item id={"copy-id"} onClick={copyPacket}>
+                    Copy ID
+                </Item>
+                <Item id={"copy-header"} onClick={copyPacket}>
+                    Copy as Header
+                </Item>
             </Menu>
         </div>
     );

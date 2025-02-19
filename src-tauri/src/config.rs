@@ -1,13 +1,13 @@
-use std::fs::File;
-use std::sync::{OnceLock, Mutex, MutexGuard};
-use serde::{Deserialize, Serialize};
-use anyhow::{anyhow, Result};
 use crate::{utils, SYSTEM_LANGUAGE};
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Language {
     English,
-    Chinese
+    Chinese,
 }
 
 impl Language {
@@ -15,7 +15,7 @@ impl Language {
     pub fn from_locale(locale: String) -> Self {
         match locale.to_lowercase().as_str() {
             "zh-cn" | "zh-hk" => Language::Chinese,
-            _ => Language::English
+            _ => Language::English,
         }
     }
 
@@ -23,7 +23,7 @@ impl Language {
     pub fn locale(&self) -> &'static str {
         match self {
             Language::English => "en-US",
-            Language::Chinese => "zh-CN"
+            Language::Chinese => "zh-CN",
         }
     }
 
@@ -31,7 +31,7 @@ impl Language {
     pub fn default_config(&self) -> &'static str {
         match self {
             Language::English => include_str!("../../resources/config/en-us.yml"),
-            Language::Chinese => include_str!("../../resources/config/zh-cn.yml")
+            Language::Chinese => include_str!("../../resources/config/zh-cn.yml"),
         }
     }
 }
@@ -108,7 +108,7 @@ pub struct Config {
 
     /// The configuration for the packet sniffer.
     #[serde(default)]
-    pub sniffer: Sniffer
+    pub sniffer: Sniffer,
 }
 
 impl Config {
@@ -117,9 +117,7 @@ impl Config {
     /// Deserializes the configuration if it hasn't been done yet.
     pub fn get<'a>() -> MutexGuard<'a, Config> {
         static CONFIG: OnceLock<Mutex<Config>> = OnceLock::new();
-        let mutex = CONFIG.get_or_init(|| {
-            Mutex::new(deserialize(*SYSTEM_LANGUAGE).unwrap())
-        });
+        let mutex = CONFIG.get_or_init(|| Mutex::new(deserialize(*SYSTEM_LANGUAGE).unwrap()));
 
         mutex.lock().unwrap()
     }
@@ -149,13 +147,13 @@ pub struct Launcher {
     ///
     /// The launcher might sometimes ask for
     /// elevation regardless to open the game.
-    pub always_elevate: bool
+    pub always_elevate: bool,
 }
 
 impl Default for Launcher {
     fn default() -> Self {
         Launcher {
-            always_elevate: true
+            always_elevate: true,
         }
     }
 }
@@ -169,13 +167,13 @@ pub struct Game {
     /// If this is the case, set this to `true`.
     ///
     /// In most cases however, this should be set to `false`.
-    pub disable_anti_cheat: bool
+    pub disable_anti_cheat: bool,
 }
 
 impl Default for Game {
     fn default() -> Self {
         Game {
-            disable_anti_cheat: false
+            disable_anti_cheat: false,
         }
     }
 }
@@ -205,7 +203,7 @@ pub struct Sniffer {
     ///
     /// This file should be readable and writable.\
     /// It contains all encryption seeds used recently.
-    pub seeds_file: String
+    pub seeds_file: String,
 }
 
 impl Default for Sniffer {
@@ -214,7 +212,7 @@ impl Default for Sniffer {
             device_name: String::new(),
             filter: "udp portrange 22101-22102".to_string(),
             server_ports: vec![22101, 22102],
-            seeds_file: "$APPDATA/sniffer/known-seeds.txt".to_string()
+            seeds_file: "$APPDATA/sniffer/known-seeds.txt".to_string(),
         }
     }
 }

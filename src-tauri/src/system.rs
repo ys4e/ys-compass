@@ -1,11 +1,11 @@
-use std::path::PathBuf;
-use anyhow::Result;
-use sysinfo::System;
 use crate::utils;
+use anyhow::Result;
+use std::path::PathBuf;
+use sysinfo::System;
 
+use log::warn;
 #[cfg(windows)]
 use std::ffi::CString;
-use log::warn;
 
 /// Encodes a string as a wide string.
 ///
@@ -76,15 +76,14 @@ pub fn is_elevated() -> bool {
 pub fn elevate() -> Result<()> {
     #[cfg(windows)]
     {
-        use std::process::exit;
-        use windows::core::PCWSTR;
         use std::env::{args, current_exe};
         use std::os::windows::ffi::OsStrExt;
-        use windows::Win32::UI::{WindowsAndMessaging::SW_SHOW, Shell::ShellExecuteW};
+        use std::process::exit;
+        use windows::core::PCWSTR;
+        use windows::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOW};
 
         let exe_path = current_exe()?;
-        let args: Vec<String> = args().skip(1)
-            .collect(); // Skip the first argument, which is the path to the exe
+        let args: Vec<String> = args().skip(1).collect(); // Skip the first argument, which is the path to the exe
         let args_string = args.join(" ");
 
         let operation = wide_str!("runas");
@@ -122,9 +121,10 @@ pub fn elevate() -> Result<()> {
 /// - `$APPDATA` - The application's data directory.
 pub fn resolve_path<S: AsRef<str>>(path: S) -> Result<PathBuf> {
     Ok(PathBuf::from(
-        path.as_ref().to_string()
+        path.as_ref()
+            .to_string()
             .replace("\\", "/")
-            .replace("$APPDATA", &utils::app_data_dir()?.to_string_lossy())
+            .replace("$APPDATA", &utils::app_data_dir()?.to_string_lossy()),
     ))
 }
 
@@ -142,7 +142,7 @@ pub enum OpenResult {
     ///
     /// Interactive prompts exist when the file isn't trusted\
     /// or the file needs special privileges.
-    Failed
+    Failed,
 }
 
 /// Attempts to open the executable file.
@@ -192,10 +192,7 @@ pub fn find_process<S: AsRef<str>>(process_name: S) -> bool {
 /// In addition, this resolves any symbolic links or relative paths.
 pub fn canonicalize<S: AsRef<str>>(path: S) -> Result<String> {
     let path = PathBuf::from(path.as_ref());
-    let path = path.canonicalize()?
-        .to_string_lossy()
-        .trim()
-        .to_string();
+    let path = path.canonicalize()?.to_string_lossy().trim().to_string();
 
     #[cfg(windows)]
     {

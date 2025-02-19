@@ -1,15 +1,15 @@
-use std::sync::Mutex;
-use serde::{Deserialize, Serialize};
-use anyhow::Result;
-use tokio::sync::RwLockReadGuard;
 use crate::app::game::{GameManager, Profile};
 use crate::{utils, GLOBAL_STATE};
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+use tokio::sync::RwLockReadGuard;
 
 /// This state can be saved to the disk.
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct PersistentState {
     /// This is the ID of the user's selected profile.
-    pub selected_profile: Option<String>
+    pub selected_profile: Option<String>,
 }
 
 impl PersistentState {

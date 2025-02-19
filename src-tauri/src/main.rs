@@ -7,39 +7,36 @@ extern crate dotenv_codegen;
 #[macro_use]
 extern crate rust_i18n;
 
+use anyhow::Result;
+use clap::{arg, Command};
+use game::GameManager;
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
-use anyhow::Result;
-use clap::{arg, Command};
-use lazy_static::lazy_static;
 use tauri::{generate_handler, AppHandle, Manager};
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 use tokio::runtime::Handle;
 use tokio::sync::RwLockReadGuard;
-use game::GameManager;
 
-mod utils;
-mod config;
 mod app;
-mod window;
 mod capabilities;
-mod events;
-mod system;
-mod database;
-mod state;
 mod cli;
+mod config;
+mod database;
+mod events;
+mod state;
+mod system;
+mod utils;
+mod window;
 
-use crate::state::*;
 use crate::app::{appearance, game};
 use crate::capabilities::sniffer;
 use crate::config::{Config, Language};
+use crate::state::*;
 
 // Generate the translation function.
-i18n!(
-    "../resources/lang",
-    fallback = "en-us"
-);
+i18n!("../resources/lang", fallback = "en-us");
 
 lazy_static! {
     /// The system default language, wrapped in an enum for the supported application languages.
@@ -96,10 +93,7 @@ async fn setup_app() -> Result<()> {
 fn clap() -> Command {
     Command::new("ysc")
         .about(t_str!("cli.about"))
-        .subcommand(
-            Command::new("sniff")
-                .about(t_str!("cli.sniff"))
-        )
+        .subcommand(Command::new("sniff").about(t_str!("cli.sniff")))
         .subcommand(
             Command::new("game")
                 .about(t_str!("cli.game"))
@@ -109,40 +103,28 @@ fn clap() -> Command {
                         .about(t_str!("cli.game.version"))
                         .arg_required_else_help(true)
                         .subcommand(
-                            Command::new("install")
-                                .about(t_str!("cli.game.version.install"))
+                            Command::new("install").about(t_str!("cli.game.version.install")),
                         )
+                        .subcommand(Command::new("locate").about(t_str!("cli.game.version.locate")))
                         .subcommand(
-                            Command::new("locate")
-                                .about(t_str!("cli.game.version.locate"))
+                            Command::new("uninstall").about(t_str!("cli.game.version.uninstall")),
                         )
-                        .subcommand(
-                            Command::new("uninstall")
-                                .about(t_str!("cli.game.version.uninstall"))
-                        )
-                        .subcommand(
-                            Command::new("list")
-                                .about(t_str!("cli.game.version.list"))
-                        )
+                        .subcommand(Command::new("list").about(t_str!("cli.game.version.list"))),
                 )
                 .subcommand(
                     Command::new("profile")
                         .about(t_str!("cli.game.profile"))
                         .arg_required_else_help(true)
+                        .subcommand(Command::new("new").about(t_str!("cli.game.profile.new")))
                         .subcommand(
-                            Command::new("new")
-                                .about(t_str!("cli.game.profile.new"))
-                        )
-                        .subcommand(
-                            Command::new("select")
-                                .about(t_str!("cli.game.profile.select"))
-                        )
+                            Command::new("select").about(t_str!("cli.game.profile.select")),
+                        ),
                 )
                 .subcommand(
                     Command::new("launch")
                         .about(t_str!("cli.game.launch"))
-                        .arg(arg!(--profile <NAME>))
-                )
+                        .arg(arg!(--profile <NAME>)),
+                ),
         )
 }
 
@@ -158,7 +140,7 @@ async fn main() {
     #[cfg(windows)]
     unsafe {
         use windows::Win32::Foundation::HWND;
-        use windows::Win32::System::Console::{GetConsoleWindow, FreeConsole};
+        use windows::Win32::System::Console::{FreeConsole, GetConsoleWindow};
 
         // Check if any arguments were passed.
         let args: Vec<String> = std::env::args().collect();
@@ -218,7 +200,7 @@ fn translate(key: String, args: Option<HashMap<String, String>>) -> String {
 /// This is exclusive to the desktop application.
 fn setup_tauri_app(
     app_handle: &AppHandle,
-    game_profile: RwLockReadGuard<'_, GameManager>
+    game_profile: RwLockReadGuard<'_, GameManager>,
 ) -> Result<()> {
     // Initialize global state.
     app_handle.manage(SelectedProfile::new(game_profile));
@@ -232,23 +214,24 @@ async fn run_tauri_app() {
     let game_profile = GameManager::get().read().await;
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_log::Builder::new()
-            .targets([
-                Target::new(TargetKind::Stdout),
-                Target::new(TargetKind::LogDir { file_name: None }),
-            ])
-            .format(|consumer, message, record| {
-                let time = time::format_description::parse("[hour]:[minute]:[second]")
-                    .unwrap();
-                consumer.finish(format_args!(
-                    "[{}] [{}] [{}]: {}",
-                    TimezoneStrategy::UseLocal.get_now().format(&time).unwrap(),
-                    record.level(),
-                    record.target(),
-                    message
-                ));
-            })
-            .build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::LogDir { file_name: None }),
+                ])
+                .format(|consumer, message, record| {
+                    let time = time::format_description::parse("[hour]:[minute]:[second]").unwrap();
+                    consumer.finish(format_args!(
+                        "[{}] [{}] [{}]: {}",
+                        TimezoneStrategy::UseLocal.get_now().format(&time).unwrap(),
+                        record.level(),
+                        record.target(),
+                        message
+                    ));
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(generate_handler![

@@ -1,20 +1,34 @@
-import { ExoticComponent, useEffect, useRef } from "react";
+import {
+    AppWindow,
+    BookDown,
+    Hammer,
+    Home,
+    Menu,
+    Monitor,
+    NotepadText,
+    Package,
+    Settings
+} from "lucide-react";
 
 import {
     Sidebar,
     SidebarContent,
-    SidebarGroup, SidebarGroupLabel,
+    SidebarGroup,
+    SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem, useSidebar
+    SidebarMenuItem,
+    useSidebar
 } from "@shad/sidebar.tsx";
-import { AppWindow, BookDown, Hammer, Home, Menu, Monitor, NotepadText, Package, Settings } from "lucide-react";
-import Button from "@components/common/Button.tsx";
 import { info } from "@tauri-apps/plugin-log";
+import { ExoticComponent, useEffect, useRef } from "react";
+
+import Button from "@components/common/Button.tsx";
+import Text from "@components/common/Text.tsx";
+
+import useTranslations from "@hooks/useTranslations.ts";
 
 import { cn } from "@app/utils.ts";
-import Text from "@components/common/Text.tsx";
-import useTranslations from "@hooks/useTranslations.ts";
 
 type Item = {
     /**
@@ -121,11 +135,14 @@ function sidebarMenu(array: Item[]) {
                         >
                             <item.icon />
 
-                            <Text className={cn(
-                                "select-none",
-                                "group-data-[collapsible=icon]:hidden",
-                                item.bold && "font-semibold"
-                            )} theme={"secondary"}>
+                            <Text
+                                className={cn(
+                                    "select-none",
+                                    "group-data-[collapsible=icon]:hidden",
+                                    item.bold && "font-semibold"
+                                )}
+                                theme={"secondary"}
+                            >
                                 {item.label}
                             </Text>
                         </Button>
@@ -169,23 +186,21 @@ function NavigationSideBar() {
                     "rounded-r-lg overflow-hidden",
                     "backdrop-blur-lg group-data-[collapsible=icon]:backdrop-blur-none",
                     "backdrop-saturate-120 group-data-[collapsible=icon]:backdrop-saturate-100",
-                    "backdrop-brightness-80 group-data-[collapsible=icon]:backdrop-brightness-100",
+                    "backdrop-brightness-80 group-data-[collapsible=icon]:backdrop-brightness-100"
                 )}
             >
-                <SidebarContent className={"h-screen flex flex-col justify-between"}>
+                <SidebarContent
+                    className={"h-screen flex flex-col justify-between"}
+                >
                     <div>
-                        <SidebarGroup>
-                            {sidebarMenu(isolated)}
-                        </SidebarGroup>
+                        <SidebarGroup>{sidebarMenu(isolated)}</SidebarGroup>
 
                         <SidebarGroup>
                             <SidebarGroupLabel>
                                 {t("launcher.sidebar.game")}
                             </SidebarGroupLabel>
 
-                            <SidebarMenu>
-                                {sidebarMenu(game)}
-                            </SidebarMenu>
+                            <SidebarMenu>{sidebarMenu(game)}</SidebarMenu>
                         </SidebarGroup>
 
                         <SidebarGroup>
@@ -193,15 +208,11 @@ function NavigationSideBar() {
                                 {t("launcher.sidebar.utilities")}
                             </SidebarGroupLabel>
 
-                            <SidebarMenu>
-                                {sidebarMenu(utilities)}
-                            </SidebarMenu>
+                            <SidebarMenu>{sidebarMenu(utilities)}</SidebarMenu>
                         </SidebarGroup>
                     </div>
 
-                    <SidebarGroup>
-                        {sidebarMenu(settings)}
-                    </SidebarGroup>
+                    <SidebarGroup>{sidebarMenu(settings)}</SidebarGroup>
                 </SidebarContent>
             </Sidebar>
         </div>

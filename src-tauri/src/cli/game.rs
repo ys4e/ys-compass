@@ -1,15 +1,15 @@
+use crate::app::game;
+use crate::app::game::{GameManager, Profile};
 use clap::ArgMatches;
 use dialoguer::Input;
 use dialoguer::{theme::ColorfulTheme, Select};
 use log::warn;
-use crate::app::game;
-use crate::app::game::{GameManager, Profile};
 
 /// Parses the command tree for `game version`.
 pub async fn version(matches: &ArgMatches) {
     match matches.subcommand().unwrap() {
         ("locate", _) => locate_version().await,
-        _ => unimplemented!()
+        _ => unimplemented!(),
     }
 }
 
@@ -28,7 +28,8 @@ async fn locate_version() {
                 Ok(())
             }
         })
-        .interact_text() else {
+        .interact_text()
+    else {
         warn!("{}", t!("game.error.launch.bad-path"));
         return;
     };
@@ -43,7 +44,7 @@ async fn locate_version() {
 pub async fn profile(matches: &ArgMatches) {
     match matches.subcommand().unwrap() {
         ("new", _) => new_profile().await,
-        _ => unimplemented!()
+        _ => unimplemented!(),
     }
 }
 
@@ -52,14 +53,17 @@ async fn new_profile() {
     // Ask the user to input a name for the profile.
     let Ok(name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt(t!("cli.game.profile.new.prompt.1"))
-        .interact_text() else {
+        .interact_text()
+    else {
         warn!("{}", t!("launcher.error.profile.bad-name"));
         return;
     };
 
     // Resolve versions.
     let mut game_manager = GameManager::get().write().await;
-    let versions = &game_manager.versions.iter()
+    let versions = &game_manager
+        .versions
+        .iter()
         .map(|v| v.version.clone())
         .collect::<Vec<String>>();
 
@@ -68,7 +72,8 @@ async fn new_profile() {
         .with_prompt(t!("cli.game.profile.new.prompt.2"))
         .default(0)
         .items(versions)
-        .interact() else {
+        .interact()
+    else {
         warn!("{}", t!("launcher.error.profile.bad-version"));
         return;
     };

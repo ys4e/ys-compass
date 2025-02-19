@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { Packet, ServerAddress } from "@backend/types.ts";
 
-type ServerMessage = HandshakeMessage | PacketMessage
+type ServerMessage = HandshakeMessage | PacketMessage;
 type HandshakeMessage = {
     packetId: 0;
     data: number; // UNIX timestamp of when the connection was established.
@@ -21,10 +21,11 @@ interface PacketHook {
 function usePacketList(server: ServerAddress): PacketHook {
     const [packets, setPackets] = useState<Packet[]>([]);
 
-    const push = (packet: Packet) => setPackets((packets) => {
-        packet.index = packets.length;
-        return [...packets, packet];
-    });
+    const push = (packet: Packet) =>
+        setPackets((packets) => {
+            packet.index = packets.length;
+            return [...packets, packet];
+        });
 
     useEffect(() => {
         const ws = new WebSocket(`ws://${server}`);
@@ -38,37 +39,40 @@ function usePacketList(server: ServerAddress): PacketHook {
         ws.onclose = () => {
             console.log("Disconnected from server.");
         };
-        ws.onmessage = ({ timeStamp, data }) => { try {
-            const message = JSON.parse(data) as ServerMessage;
-            switch (message.packetId) {
-                default:
-                    console.log("Unknown packet received.", message);
-                    return;
-                case 0:
-                    push({
-                        time: timeStamp,
-                        source: "server",
-                        packetId: 0,
-                        packetName: "Server Handshake",
-                        length: 0,
-                        data: JSON.stringify({
-                            timestamp: message.data,
-                            connectedTo: server,
-                        })
-                    });
-                    return;
-                case 1:
-                    message.data.time = timeStamp;
-                    push(message.data);
-                    return;
+        ws.onmessage = ({ timeStamp, data }) => {
+            try {
+                const message = JSON.parse(data) as ServerMessage;
+                switch (message.packetId) {
+                    default:
+                        console.log("Unknown packet received.", message);
+                        return;
+                    case 0:
+                        push({
+                            time: timeStamp,
+                            source: "server",
+                            packetId: 0,
+                            packetName: "Server Handshake",
+                            length: 0,
+                            data: JSON.stringify({
+                                timestamp: message.data,
+                                connectedTo: server
+                            })
+                        });
+                        return;
+                    case 1:
+                        message.data.time = timeStamp;
+                        push(message.data);
+                        return;
+                }
+            } catch (error) {
+                console.error("Failed to parse JSON.", error);
             }
-        } catch (error) {
-            console.error("Failed to parse JSON.", error);
-        } };
+        };
     }, []);
 
     return {
-        packets, push,
+        packets,
+        push,
         clear: () => setPackets([])
     };
 }

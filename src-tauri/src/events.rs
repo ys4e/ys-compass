@@ -2,14 +2,14 @@ use log::warn;
 use tauri::{AppHandle, Emitter};
 
 pub enum Event {
-    LanguageChanged(String)
+    LanguageChanged(String),
 }
 
 impl Event {
     /// Converts the enum into an event string used on the frontend.
     pub fn to_string(&self) -> &'static str {
         match self {
-            Event::LanguageChanged(_) => "ysc://language/changed"
+            Event::LanguageChanged(_) => "ysc://language/changed",
         }
     }
 
@@ -18,7 +18,7 @@ impl Event {
     /// If no payload was specified, a `()` will be returned.
     pub fn to_payload(&self) -> String {
         match self {
-            Event::LanguageChanged(language) => language.to_string()
+            Event::LanguageChanged(language) => language.to_string(),
         }
     }
 }
@@ -27,9 +27,7 @@ impl Event {
 ///
 /// Requires using the event enum.
 pub fn emit_event(app_handle: &AppHandle, event: Event) {
-    if let Err(error) = app_handle.emit(
-        event.to_string(), event.to_payload()
-    ) {
+    if let Err(error) = app_handle.emit(event.to_string(), event.to_payload()) {
         warn!("{} {}", t!("backend.tauri.emit.error"), error);
     }
 }

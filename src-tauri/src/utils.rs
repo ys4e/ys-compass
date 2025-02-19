@@ -1,12 +1,12 @@
-use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::Context;
 use anyhow::{anyhow, Result};
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use rand::distr::Alphanumeric;
 use rand::Rng;
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 use sys_locale::get_locale;
+use tauri::Context;
 use ys_sniffer::PacketSource;
 
 /// This type is used for Tauri commands.
@@ -33,7 +33,8 @@ pub fn base64_encode(data: &[u8]) -> String {
 
 /// Base64 decodes a standard Base64 string into binary data.
 pub fn base64_decode(string: String) -> Result<Vec<u8>> {
-    BASE64_STANDARD.decode(string.as_bytes())
+    BASE64_STANDARD
+        .decode(string.as_bytes())
         .map_err(|e| anyhow!(e))
 }
 
@@ -54,14 +55,12 @@ pub fn unix_timestamp() -> u64 {
 
 /// Writes the text content to the file at the given path.
 pub fn write_file<S: AsRef<str>>(path: &PathBuf, data: S) -> Result<()> {
-    std::fs::write(path, data.as_ref())
-        .map_err(|e| anyhow!(e))
+    std::fs::write(path, data.as_ref()).map_err(|e| anyhow!(e))
 }
 
 /// Reads the given file as a byte array.
 pub fn read_file(path: &PathBuf) -> Result<Vec<u8>> {
-    std::fs::read(path)
-        .map_err(|e| anyhow!(e))
+    std::fs::read(path).map_err(|e| anyhow!(e))
 }
 
 /// Returns a path to the application's configuration directory.
@@ -87,16 +86,15 @@ pub fn opposite(source: PacketSource) -> PacketSource {
 }
 
 pub mod serde_base64 {
-    use serde::{Serializer, Deserializer, Serialize, Deserialize};
     use crate::utils;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     pub fn serialize<S: Serializer>(v: &[u8], s: S) -> Result<S::Ok, S::Error> {
         String::serialize(&utils::base64_encode(v), s)
     }
 
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
-        utils::base64_decode(String::deserialize(d)?)
-            .map_err(serde::de::Error::custom)
+        utils::base64_decode(String::deserialize(d)?).map_err(serde::de::Error::custom)
     }
 }
 
@@ -114,9 +112,5 @@ pub fn get_executable_name<S: AsRef<str>>(path: S) -> String {
 
 /// Generates a random 16-character ID.
 pub fn random_id() -> String {
-    String::from_utf8(rand::rng()
-        .sample_iter(&Alphanumeric)
-        .take(16)
-        .collect()
-    ).unwrap()
+    String::from_utf8(rand::rng().sample_iter(&Alphanumeric).take(16).collect()).unwrap()
 }

@@ -1,6 +1,8 @@
 import { CSSProperties, useEffect, useRef } from "react";
-
-import { JSONEditor as Editor, JSONEditorPropsOptional } from "vanilla-jsoneditor";
+import {
+    JSONEditor as Editor,
+    JSONEditorPropsOptional
+} from "vanilla-jsoneditor";
 import "vanilla-jsoneditor/themes/jse-theme-dark.css";
 
 type IProps = JSONEditorPropsOptional & {

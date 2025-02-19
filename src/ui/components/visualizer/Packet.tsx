@@ -1,18 +1,17 @@
-import { CSSProperties } from "react";
+import { useContextMenu } from "react-contexify";
 
 import classNames from "classnames";
+
+import { CSSProperties } from "react";
 
 import { Packet as PacketType } from "@backend/types.ts";
 
 import "@css/components/Packet.scss";
-import { useContextMenu } from "react-contexify";
 
 function SourceTag({ source }: { source: "client" | "server" }) {
     return (
         <div className={"h-full flex justify-center text-center source"}>
-            <span
-                className={`Packet_Source ${source}`}
-            >
+            <span className={`Packet_Source ${source}`}>
                 {source.toUpperCase()}
             </span>
         </div>
@@ -56,16 +55,26 @@ function Packet(props: IProps) {
             <span className={"time"}>{Math.floor(data.time)}</span>
             <span className={"index"}>{index + 1}</span>
             <SourceTag source={data.source} />
-            <span className={"id"} data-type={"number"}>{data.packetId}</span>
+            <span className={"id"} data-type={"number"}>
+                {data.packetId}
+            </span>
             <span className={"!text-left packet-name"}>{data.packetName}</span>
-            <span className={"length"} data-type={"number"}>{data.length}</span>
+            <span className={"length"} data-type={"number"}>
+                {data.length}
+            </span>
             <div className={"flex flex-col !justify-center data w-0"}>
-                <span className={"!block !h-fit max-w-[100%] opacity-70 overflow-hidden whitespace-nowrap text-ellipsis"}>
+                <span
+                    className={
+                        "!block !h-fit max-w-[100%] opacity-70 overflow-hidden whitespace-nowrap text-ellipsis"
+                    }
+                >
                     {data.data}
                 </span>
             </div>
         </div>
-    ) : <></>;
+    ) : (
+        <></>
+    );
 }
 
 export default Packet;

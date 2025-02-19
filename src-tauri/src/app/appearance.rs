@@ -1,9 +1,9 @@
-use std::fs;
 use lazy_static::lazy_static;
-use tauri::{AppHandle, Manager};
 use log::debug;
 use regex::Regex;
 use serde_json::Value;
+use std::fs;
+use tauri::{AppHandle, Manager};
 
 lazy_static! {
     static ref FILE_NAME_REGEX: Regex = Regex::new(r"https:\/\/.*\/(.*_.*\.webp)").unwrap();
@@ -77,9 +77,7 @@ pub async fn appearance__background(app_handle: AppHandle) -> Result<String, &'s
         return Err("Failed to extract game information list.");
     };
 
-    let Some(game) = data.iter()
-        .find(|v| v["game"]["id"] == dotenv!("GAME_ID"))
-    else {
+    let Some(game) = data.iter().find(|v| v["game"]["id"] == dotenv!("GAME_ID")) else {
         return Err("Failed to find game information.");
     };
 
@@ -91,7 +89,8 @@ pub async fn appearance__background(app_handle: AppHandle) -> Result<String, &'s
     };
 
     // Step 3. Extract the file name from the URL & query for data.
-    let file_name = FILE_NAME_REGEX.captures(url)
+    let file_name = FILE_NAME_REGEX
+        .captures(url)
         .and_then(|c| c.get(1))
         .map(|m| m.as_str())
         .unwrap_or("background.webp");

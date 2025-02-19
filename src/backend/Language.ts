@@ -9,7 +9,10 @@ export type TranslateArguments = { [key: string]: string };
  * @param key The key to translate.
  * @param args The arguments to replace in the text.
  */
-export async function t(key: string, args?: TranslateArguments): Promise<string> {
+export async function t(
+    key: string,
+    args?: TranslateArguments
+): Promise<string> {
     return Language.translate(key, args);
 }
 

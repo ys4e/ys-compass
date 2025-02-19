@@ -1,11 +1,10 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { error as logError } from "@tauri-apps/plugin-log";
+import { FastAverageColor } from "fast-average-color";
+import tinycolor from "tinycolor2";
 
 import Global from "@backend/Global.ts";
 import { Colors } from "@backend/types.ts";
-
-import tinycolor from "tinycolor2";
-import { FastAverageColor } from "fast-average-color";
 
 class Appearance {
     /**
@@ -18,34 +17,46 @@ class Appearance {
      *
      * @param cache Should the cache be strictly used?
      */
-    public static async getBackgroundImage(cache: boolean = false): Promise<string> {
+    public static async getBackgroundImage(
+        cache: boolean = false
+    ): Promise<string> {
         let backgroundPath: string | undefined = undefined;
 
         if (cache) {
             // Get the cached background from the store.
             backgroundPath = await Appearance.getLastBackground();
-        } else try {
-            // Use the latest background from the backend.
-            backgroundPath = await invoke("appearance__background") as string;
+        } else
+            try {
+                // Use the latest background from the backend.
+                backgroundPath = (await invoke(
+                    "appearance__background"
+                )) as string;
 
-            // If this doesn't fail, we should set this value in the cache.
-            await Global.getCacheStore().set("last-background", backgroundPath);
-        } catch (error) {
-            // Fallback to the default background.
-            // This will just leave backgroundPath as undefined.
-        }
+                // If this doesn't fail, we should set this value in the cache.
+                await Global.getCacheStore().set(
+                    "last-background",
+                    backgroundPath
+                );
+            } catch (error) {
+                // Fallback to the default background.
+                // This will just leave backgroundPath as undefined.
+            }
 
         // If the background is still undefined, fallback to the default background.
-        if (backgroundPath == undefined) try {
-            // Query the backend for the background image.
-            backgroundPath = await invoke("appearance__default_splash") as string;
-        } catch (error) {
-            // This is a CRITICAL error.
-            logError("Failed to get the default background image.")
-                .catch(error => Global.fallback(error));
+        if (backgroundPath == undefined)
+            try {
+                // Query the backend for the background image.
+                backgroundPath = (await invoke(
+                    "appearance__default_splash"
+                )) as string;
+            } catch (error) {
+                // This is a CRITICAL error.
+                logError("Failed to get the default background image.").catch(
+                    (error) => Global.fallback(error)
+                );
 
-            return "";
-        }
+                return "";
+            }
 
         return convertFileSrc(backgroundPath);
     }
@@ -77,7 +88,9 @@ class Appearance {
      *
      * The result is an object of different HEX colors to use.
      */
-    public static async getColorScheme(path?: string | undefined): Promise<Colors> {
+    public static async getColorScheme(
+        path?: string | undefined
+    ): Promise<Colors> {
         // Get the background image if it wasn't provided.
         path ??= await Appearance.getBackgroundImage(true);
 
@@ -86,8 +99,7 @@ class Appearance {
         const result = await calculator.getColorAsync(path);
 
         // Saturate the color.
-        let wrapper = tinycolor(result.hex)
-            .saturate(20);
+        let wrapper = tinycolor(result.hex).saturate(20);
 
         if (result.isDark) {
             wrapper = wrapper.lighten(20);
@@ -97,7 +109,7 @@ class Appearance {
 
         return {
             dark: result.isDark,
-            primary: wrapper.toHexString(),
+            primary: wrapper.toHexString()
         };
     }
 }

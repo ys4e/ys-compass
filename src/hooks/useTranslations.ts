@@ -1,8 +1,9 @@
-import Language from "@backend/Language.ts";
-import { useEffect, useState } from "react";
-import Global from "@backend/Global.ts";
-import { listen, UnlistenFn } from "@tauri-apps/api/event";
+import { UnlistenFn, listen } from "@tauri-apps/api/event";
 import { warn } from "@tauri-apps/plugin-log";
+import { useEffect, useState } from "react";
+
+import Global from "@backend/Global.ts";
+import Language from "@backend/Language.ts";
 
 type Translate = (key: string) => string;
 type Translations = Map<string, string>;
@@ -35,10 +36,9 @@ function useTranslations(): Translate {
         listen("ysc://language/change", () => {
             // Re-fetch all translations.
             for (const key of map.keys()) {
-                fetchTranslation(key)
-                    .catch(Global.fallback);
+                fetchTranslation(key).catch(Global.fallback);
             }
-        }).then((fn) => unlisten = fn);
+        }).then((fn) => (unlisten = fn));
 
         return () => unlisten();
     }, []);
@@ -48,8 +48,7 @@ function useTranslations(): Translate {
 
         // Look up the string if it hasn't been fetched yet.
         if (string == undefined) {
-            fetchTranslation(key)
-                .catch(Global.fallback);
+            fetchTranslation(key).catch(Global.fallback);
             return "";
         }
 
