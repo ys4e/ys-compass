@@ -28,7 +28,8 @@ tauri build
 ```
 
 This requires:
-- [Bun Runtime](https://bun.sh/)
+- [Bun](https://bun.sh/) (for its package manager)
+  - If you aren't using `bun`, replace references to it in `src-tauri/tauri.conf.json`
 - [Rust & Cargo](https://www.rust-lang.org/tools/install)
 
 ### YSP Format
@@ -51,11 +52,14 @@ This is an HTML5-based application using the following technologies:
 - [Prettier](https://prettier.io/)
   - [prettier-plugin-sort-imports](https://github.com/trivago/prettier-plugin-sort-imports)
 - [Tauri](https://tauri.app/)
+- [shadcn.](https://ui.shadcn.com/)
 
 ### TypeScript Path Aliases
 
 - `@app` -> `./src`
+- `@ui` -> `./src/ui`
 - `@components` -> `./src/ui/components` (for general components)
+  - `@shad` -> `./src/ui/components/shad` (for shadcn. components)
 - `@pages` -> `./src/ui/pages` (for general components)
 - `@hooks` -> `./src/hooks`
 - `@stores` -> `./src/stores` (for Zustand stores)

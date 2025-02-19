@@ -34,6 +34,7 @@
       "@ui/*": ["src/ui/*"],
       "@css/*": ["src/ui/css/*"],
       "@components/*": ["src/ui/components/*"],
+      "@shad/*": ["src/ui/components/shad/*"],
       "@pages/*": ["src/ui/pages/*"],
       "@backend/*": ["src/backend/*"],
       "@stores/*": ["src/backend/stores/*"],

@@ -13,12 +13,18 @@
     "start:dev": "tauri dev"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-separator": "^1.1.2",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-tooltip": "^1.1.8",
     "@tauri-apps/api": "2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.2.0",
     "@tauri-apps/plugin-log": "^2.2.1",
     "@tauri-apps/plugin-store": "^2.2.0",
-    "@tauri-apps/plugin-dialog": "^2.2.0",
     "@xzdarcy/react-timeline-editor": "^0.1.9",
+    "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
+    "clsx": "^2.1.1",
     "fast-average-color": "^9.4.0",
     "lucide-react": "^0.474.0",
     "posthog-js": "^1.214.0",
@@ -30,6 +36,8 @@
     "react-router-dom": "^6.26.1",
     "react-virtualized-auto-sizer": "^1.0.24",
     "react-window": "^1.8.10",
+    "tailwind-merge": "^3.0.1",
+    "tailwindcss-animate": "^1.0.7",
     "tinycolor2": "^1.6.0",
     "vanilla-jsoneditor": "^0.23.8",
     "zustand": "^4.5.5"
