@@ -249,6 +249,7 @@ async fn run_tauri_app() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(generate_handler![
             translate,
+            app::set_language,
             game::game__is_open,
             game::game__launch,
             game::game__locate,
