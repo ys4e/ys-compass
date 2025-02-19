@@ -463,10 +463,12 @@ pub async fn locate_game(path: String) -> MaybeError<()> {
     }
 
     // Otherwise, insert the version.
-    if let Err(error) = sqlx::query!(
-        "INSERT INTO `versions` (`version`, `path`) VALUES ($1, $2)",
-        version_string, path
-    ).execute(&pool).await {
+    let version = Version {
+        version: version_string.to_string(),
+        path
+    };
+
+    if let Err(error) = version.save().await {
         warn!("Failed to insert version: {}", error);
         return Err("database.query-failed");
     };

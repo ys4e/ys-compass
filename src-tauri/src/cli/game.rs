@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use clap::ArgMatches;
 use dialoguer::Input;
 use dialoguer::{theme::ColorfulTheme, Select};
