@@ -70,6 +70,13 @@ export default {
                 lg: "var(--radius)",
                 md: "calc(var(--radius) - 2px)",
                 sm: "calc(var(--radius) - 4px)",
+            },
+            backdropSaturate: {
+                90: "90%",
+                120: "120%"
+            },
+            backdropBrightness: {
+                80: "80%"
             }
         }
     },

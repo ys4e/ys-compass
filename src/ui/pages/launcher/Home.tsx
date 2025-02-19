@@ -15,7 +15,7 @@ function Home() {
             className={"w-full h-full flex flex-row justify-between"}
         >
             <div
-                className={"h-full flex flex-col justify-end pl-8 py-9"}
+                className={"h-full flex flex-col justify-end ml-12 pl-8 py-9"}
             >
                 <Button
                     className={classNames(

@@ -24,6 +24,19 @@ launcher.error.profile.unknown: "An unknown system error has occurred."
 # Database Error Messages
 database.query-failed: "Failed to update database."
 
+# Launcher Side Bar
+launcher.sidebar.menu: "Menu"
+launcher.sidebar.launcher: "Launcher"
+launcher.sidebar.game: "Game"
+launcher.sidebar.game.versions: "Version Manager"
+launcher.sidebar.game.tools: "Tool Manager"
+launcher.sidebar.game.mods: "Mod Browser"
+launcher.sidebar.utilities: "Utilities"
+launcher.sidebar.utilities.visualizer: "Packet Visualizer"
+launcher.sidebar.utilities.editor: "Packet Editor"
+launcher.sidebar.profiles: "Profiles"
+launcher.sidebar.settings: "Settings"
+
 # Launcher Home Page
 launcher.home.game.play: "Start Game"
 launcher.home.game.update: "Update Game"

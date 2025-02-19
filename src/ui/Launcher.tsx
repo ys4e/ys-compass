@@ -7,6 +7,9 @@ import Home from "@pages/launcher/Home.tsx";
 import AppStatusBar from "@components/AppStatusBar.tsx";
 
 import "@css/Launcher.scss";
+import VersionManager from "@pages/launcher/VersionManager.tsx";
+import NavigationSideBar from "@components/launcher/NavigationSideBar.tsx";
+import { SidebarProvider } from "@shad/sidebar.tsx";
 
 /**
  * This is the main part of the application.
@@ -16,26 +19,27 @@ function Launcher() {
     const bgPath = useBackground();
 
     return (
-        <div
-            id={"page__launcher"}
-            style={{
-                background: bgPath ? `url(${bgPath})` : undefined,
-            }}
-        >
-            <div id={"sidebar"}>
+        <SidebarProvider>
+            <div
+                id={"page__launcher"}
+                style={{
+                    background: bgPath ? `url(${bgPath})` : undefined,
+                }}
+            >
+                <NavigationSideBar />
 
-            </div>
+                <div className={"flex flex-col w-full"}>
+                    <AppStatusBar />
 
-            <div className={"flex flex-col w-full"}>
-                <AppStatusBar />
-
-                <div id={"main-content"}>
-                    <Routes>
-                        <Route path={"/"} element={<Home />} />
-                    </Routes>
+                    <div id={"main-content"}>
+                        <Routes>
+                            <Route path={"/"} element={<Home />} />
+                            <Route path={"/versions"} element={<VersionManager />} />
+                        </Routes>
+                    </div>
                 </div>
             </div>
-        </div>
+        </SidebarProvider>
     );
 }
 
