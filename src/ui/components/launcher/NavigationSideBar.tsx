@@ -1,4 +1,4 @@
-import { ExoticComponent } from "react";
+import { ExoticComponent, useEffect, useRef } from "react";
 
 import {
     Sidebar,
@@ -137,10 +137,31 @@ function sidebarMenu(array: Item[]) {
 }
 
 function NavigationSideBar() {
+    const sidebar = useSidebar();
     const t = useTranslations();
 
+    const ref = useRef<HTMLDivElement>(null);
+
+    /**
+     * Detect clicks outside the sidebar.
+     */
+    useEffect(() => {
+        const handler = (event: MouseEvent) => {
+            if (!ref.current) {
+                return;
+            }
+
+            if (!ref.current.contains(event.target as Node)) {
+                sidebar.setOpen(false);
+            }
+        };
+
+        window.addEventListener("click", handler);
+        return () => window.removeEventListener("click", handler);
+    }, []);
+
     return (
-        <div className={"absolute"}>
+        <div ref={ref} className={"absolute"}>
             <Sidebar
                 id={"sidebar"}
                 collapsible={"icon"}
