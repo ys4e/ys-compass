@@ -16,21 +16,6 @@ launcher:
 
 # Game information config
 game:
-    # The absolute path to the game's executable.
-    #
-    # This is used to launch the game.
-    path: "C:/Program Files/Genshin Impact/Genshin Impact game/GenshinImpact.exe"
-
-    # A list of supported modifications to inject into the game.
-    #
-    # Valid examples:
-    # - 3DMigoto/GIMI
-    # - ReShade
-    #
-    # Absolute paths to DLLs can also be used when prefixed with `dll:`
-    modifications:
-        - 3DMigoto # This value can also be inputted as 'GIMI'
-
     # Whether to disable the anti-cheat.
     #
     # Sometimes, the anti-cheat can prevent DLLs from being injected.
