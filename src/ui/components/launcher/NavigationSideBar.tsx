@@ -44,7 +44,12 @@ type Item = {
     /**
      * Click event handler.
      */
-    onClick: () => void;
+    onClick?: () => void;
+
+    /**
+     * The path to navigate to.
+     */
+    navigate?: string;
 
     /**
      * Whether the item should be bold.
@@ -68,7 +73,7 @@ const isolated = [
     {
         label: "launcher.sidebar.launcher",
         icon: Home,
-        onClick: () => info("home")
+        navigate: "/"
     }
 ] as Item[];
 
@@ -94,7 +99,7 @@ const utilities = [
     {
         label: "launcher.sidebar.utilities.visualizer",
         icon: Monitor,
-        onClick: () => info("packet visualizer")
+        onClick: Capabilities.openVisualizer
     },
     {
         label: "launcher.sidebar.utilities.editor",
@@ -122,6 +127,7 @@ const settings = [
  * @param array The items to render.
  */
 function sidebarMenu(array: Item[]) {
+    const navigate = useNavigate();
     const { toggleSidebar } = useSidebar();
 
     return (
@@ -130,7 +136,15 @@ function sidebarMenu(array: Item[]) {
                 <SidebarMenuItem key={item.label}>
                     <SidebarMenuButton asChild={true}>
                         <Button
-                            onClick={item.menu ? toggleSidebar : item.onClick}
+                            onClick={() => {
+                                if (item.menu) {
+                                    toggleSidebar()
+                                } else if (item.onClick) {
+                                    item.onClick();
+                                } else if (item.navigate) {
+                                    navigate(item.navigate);
+                                }
+                            }}
                             className={"flex flex-row"}
                         >
                             <item.icon />

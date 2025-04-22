@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, MutexGuard};
 use std::time::Instant;
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::Mutex;
 use ys_sniffer::{Config as SnifferConfig, GamePacket, PacketSource};
 
@@ -130,32 +131,12 @@ impl Display for Packet {
 
 /// Runs the sniffer for the CLI application.
 pub async fn run_cli() {
-    let mut config = Config::get();
-
-    // Resolve the seeds file.
-    let seeds_file = match system::resolve_path(&config.sniffer.seeds_file) {
-        Ok(path) => path.to_string_lossy().to_string(),
-        Err(_) => "known-seeds.txt".to_string(),
-    };
-
-    // Prepare the sniffer configuration.
-    let sniffer_config = SnifferConfig {
-        device_name: Some(get_device(&mut config)),
-        known_seeds: seeds_file,
-        filter: Some(config.sniffer.filter.clone()),
-        server_port: config.sniffer.server_ports.clone(),
-    };
-
-    // Drop the lock so we don't carry it across await points.
-    drop(config);
-
-    // Create the sending/receiving channel.
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<GamePacket>();
-
-    // Run the sniffer.
-    let Ok(shutdown_hook) = ys_sniffer::sniff_async(sniffer_config, tx) else {
-        error!("Failed to run the sniffer.");
-        std::process::exit(1);
+    let (mut rx, shutdown_hook) = match run_sniffer().await {
+        Ok((shutdown_hook, rx)) => (shutdown_hook, rx),
+        Err(error) => {
+            error!("Failed to run the sniffer: {:#?}", error);
+            std::process::exit(1);
+        }
     };
 
     // Create mutex for storing packets.
@@ -259,8 +240,49 @@ pub async fn run_cli() {
     info!("Sniffer has been shut down.");
 }
 
+/// This is the result that `run_sniffer` returns.
+///
+/// It returns two things:
+///
+/// 1. The packet receiver.
+/// 2. The sniffer's shutdown hook.
+type SnifferRunResult = (UnboundedReceiver<GamePacket>, crossbeam_channel::Sender<()>);
+
+/// Runs the actual sniffer.
+///
+/// Pulls the configuration for the sniffer from the global config.
+pub async fn run_sniffer() -> Result<SnifferRunResult, &'static str> {
+    let mut config = Config::get();
+
+    // Resolve the seeds file.
+    let seeds_file = match system::resolve_path(&config.sniffer.seeds_file) {
+        Ok(path) => path.to_string_lossy().to_string(),
+        Err(_) => "known-seeds.txt".to_string(),
+    };
+
+    // Prepare the sniffer configuration.
+    let sniffer_config = SnifferConfig {
+        device_name: Some(get_device(&mut config)),
+        known_seeds: seeds_file,
+        filter: Some(config.sniffer.filter.clone()),
+        server_port: config.sniffer.server_ports.clone(),
+    };
+
+    // Drop the lock so we don't carry it across await points.
+    drop(config);
+
+    // Create the sending/receiving channel.
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<GamePacket>();
+
+    // Run the sniffer.
+    let shutdown_hook = ys_sniffer::sniff_async(sniffer_config, tx)
+        .map_err(|_| "Failed to run the sniffer.")?;
+
+    Ok((rx, shutdown_hook))
+}
+
 /// A packet that is displayed on the frontend.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VisualPacket {
     /// The timestamp of the packet.
@@ -298,6 +320,31 @@ pub struct VisualPacket {
     ///
     /// This represents the array index.
     index: u32,
+}
+
+impl VisualPacket {
+    /// Converts a `GamePacket` into a `VisualPacket`.
+    pub fn into_game(
+        packet: &GamePacket,
+        start_time: Instant
+    ) -> Self {
+        // Decode the packet's data.
+        let decoded = match protoshark::decode(&packet.data) {
+            Ok(decoded) => serde_json::to_string(&decoded).unwrap(),
+            Err(_) => Default::default()
+        };
+
+        Self {
+            time: Instant::now().duration_since(start_time).as_secs_f32(),
+            source: packet.source,
+            packet_id: packet.id,
+            packet_name: packet.id.to_string(),
+            length: packet.data.len() as u64,
+            data: decoded,
+            binary: packet.data.clone(),
+            index: 0
+        }
+    }
 }
 
 /// Reads and parses the selected file for packets.

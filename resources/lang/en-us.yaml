@@ -27,6 +27,9 @@ launcher.error.profile.unknown: "An unknown system error has occurred."
 # Database Error Messages
 database.query-failed: "Failed to update database."
 
+# Capability Error Messages
+capability.sniffer.error: "Failed to start the packet sniffer."
+
 # Launcher Side Bar
 launcher.sidebar.menu: "Menu"
 launcher.sidebar.launcher: "Launcher"

@@ -5,6 +5,11 @@ const cacheStore = await Store.load("cache.json");
 
 class Global {
     /**
+     * This event is emitted by the Tauri backend when a packet is received.
+     */
+    public static VISUALIZER_PACKET: string = "ysc://visualizer/packet";
+
+    /**
      * Global accessor for the cache store.
      */
     static getCacheStore(): Store {

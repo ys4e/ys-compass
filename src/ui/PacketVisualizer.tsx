@@ -18,8 +18,6 @@ import JSONEditor from "@components/JSONEditor.tsx";
 import Button from "@components/common/Button.tsx";
 import Packet from "@components/visualizer/Packet.tsx";
 
-import useConfig from "@stores/config.ts";
-
 import usePacketList from "@hooks/visualizer/usePacketList.ts";
 import useViewport from "@hooks/visualizer/useViewport.ts";
 
@@ -294,9 +292,8 @@ function PacketVisualizer() {
     const [jsonFilter, setJsonFilter] = useState<string | undefined>(undefined);
     /// </editor-fold>
 
-    const config = useConfig();
     const { height: viewportHeight } = useViewport();
-    const { packets, push, clear } = usePacketList(config.server_address);
+    const { packets, push, clear } = usePacketList(undefined);
 
     /// <editor-fold desc="Resize functions">
     const onMouseMove = (event: MouseEvent) => {

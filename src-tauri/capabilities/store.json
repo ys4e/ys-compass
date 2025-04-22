@@ -3,7 +3,7 @@
   "identifier": "store",
   "description": "capabilities for storing data",
   "local": true,
-  "windows": ["main"],
+  "windows": ["main", "visualizer"],
   "permissions": [
     "store:allow-load",
     "store:allow-save",

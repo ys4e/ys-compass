@@ -1,24 +1,28 @@
 use log::warn;
 use tauri::{AppHandle, Emitter};
+use crate::capabilities::sniffer::VisualPacket;
 
 pub enum Event {
     LanguageChanged(String),
+    VisualizerPacket(VisualPacket)
 }
 
 impl Event {
     /// Converts the enum into an event string used on the frontend.
-    pub fn to_string(&self) -> &'static str {
+    fn to_string(&self) -> &'static str {
         match self {
             Event::LanguageChanged(_) => "ysc://language/changed",
+            Event::VisualizerPacket(_) => "ysc://visualizer/packet"
         }
     }
 
-    /// Converts the enum into a payload string used on the frontend.
-    ///
-    /// If no payload was specified, a `()` will be returned.
-    pub fn to_payload(&self) -> String {
-        match self {
-            Event::LanguageChanged(language) => language.to_string(),
+    /// Emits this event to the global app handle.
+    pub fn send(&self, app_handle: &AppHandle) {
+        if let Err(error) = match self {
+            Event::LanguageChanged(language) => app_handle.emit(self.to_string(), language.to_string()),
+            Event::VisualizerPacket(packet) => app_handle.emit(self.to_string(), packet.clone())
+        } {
+            warn!("{} {}", t!("backend.tauri.emit.error"), error);
         }
     }
 }
@@ -27,7 +31,5 @@ impl Event {
 ///
 /// Requires using the event enum.
 pub fn emit_event(app_handle: &AppHandle, event: Event) {
-    if let Err(error) = app_handle.emit(event.to_string(), event.to_payload()) {
-        warn!("{} {}", t!("backend.tauri.emit.error"), error);
-    }
+    event.send(app_handle);
 }

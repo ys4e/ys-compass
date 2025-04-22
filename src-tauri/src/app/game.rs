@@ -10,8 +10,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::Error;
 use std::path::PathBuf;
 use std::sync::MutexGuard;
+use std::thread::sleep;
+use std::time::Duration;
 use tauri::State;
-use tokio::sync::RwLock;
+use tokio::sync::{watch, watch::{Sender as WatchSender, Receiver as WatchReceiver}, RwLock};
 
 use crate::state::SelectedProfile;
 #[cfg(windows)]
@@ -23,6 +25,7 @@ lazy_static! {
     static ref GAME_MANAGER: RwLock<GameManager> = RwLock::new(GameManager::default());
     static ref VERSION_STRING_REGEX: Regex =
         Regex::new(r"(OS|CN)(REL|CB)Win([1-9])\.([0-9])\.([0-9]*)").unwrap();
+    static ref GAME_STATUS: (WatchSender<bool>, WatchReceiver<bool>) = watch::channel(false);
 }
 
 /// A game launch profile.
@@ -68,35 +71,6 @@ impl Profile {
 
         Ok(())
     }
-}
-
-/// Creates a new game profile.
-#[tauri::command]
-pub async fn game__new_profile(
-    state: State<'_, SelectedProfile>,
-    profile: Profile,
-) -> MaybeError<()> {
-    // Save the profile.
-    if let Err(error) = profile.save().await {
-        warn!("Failed to save profile: {}", error);
-        return Err("launcher.error.profile.unknown");
-    };
-
-    // Lock the selected profile.
-    let mut selected_profile = state.0.lock().unwrap();
-
-    // Check if an existing profile is set.
-    let mut state = GLOBAL_STATE.write().unwrap();
-    if state.selected_profile.is_none() || selected_profile.is_none() {
-        // Set the persistent state.
-        state.selected_profile = Some(profile.id.clone());
-        state.save().ok();
-
-        // Set the selected profile.
-        *selected_profile = Some(profile);
-    }
-
-    Ok(())
 }
 
 /// A game 'modification'.
@@ -353,6 +327,11 @@ impl GameManager {
     }
 }
 
+/// Returns a new channel reference to listen for the game status.
+pub fn new_status_listener() -> WatchReceiver<bool> {
+    GAME_STATUS.1.clone()
+}
+
 /// Utility method to check if the game is currently running.
 ///
 /// In the event of any errors, this will return `false`.
@@ -365,6 +344,38 @@ pub fn game__is_open(profile: State<SelectedProfile>) -> bool {
 
     let path = &profile.version.path;
     system::find_process(utils::get_executable_name(path))
+}
+
+/// Enables the 'process watcher'.
+///
+/// This will look for the game process.
+///
+/// Once the game is closed, this will need to be re-run.
+pub fn watch_game(profile: Profile) {
+    // Get the game path.
+    let path = profile.version.path.clone();
+
+    // Get the status channel.
+    let sender = GAME_STATUS.0.clone();
+
+    std::thread::spawn(move || {
+        // If the game is not open yet, wait for it to open.
+        while !system::find_process(utils::get_executable_name(&path)) {
+            trace!("Waiting for game process to open...");
+            sleep(Duration::from_secs(2));
+        }
+
+        // Once the game is open, notify listeners.
+        sender.send(true).unwrap();
+
+        // Wait for the game to close.
+        while system::find_process(utils::get_executable_name(&path)) {
+            sleep(Duration::from_secs(2));
+        }
+
+        // Once the game is closed, notify listeners.
+        sender.send(false).unwrap();
+    });
 }
 
 /// Launches the game.
@@ -389,6 +400,9 @@ pub fn game__launch(profile: State<SelectedProfile>) -> MaybeError<()> {
     let Some(ref profile) = *profile.0.lock().unwrap() else {
         return Err("game.error.launch.no-profile");
     };
+
+    // Run the game watcher.
+    watch_game(profile.clone());
 
     // Launch the game.
     launch_game(profile, config)

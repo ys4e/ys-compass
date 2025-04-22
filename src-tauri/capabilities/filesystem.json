@@ -3,7 +3,7 @@
   "identifier": "filesystem",
   "description": "capabilities for accessing the file system",
   "local": true,
-  "windows": ["main"],
+  "windows": ["main", "visualizer"],
   "permissions": [
     "dialog:allow-open"
   ]

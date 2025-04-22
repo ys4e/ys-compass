@@ -3,7 +3,7 @@
   "identifier": "window-common",
   "description": "common window capabilities",
   "local": true,
-  "windows": ["main"],
+  "windows": ["main", "visualizer"],
   "permissions": [
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",

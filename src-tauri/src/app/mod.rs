@@ -4,6 +4,8 @@ use tauri::AppHandle;
 
 pub mod appearance;
 pub mod game;
+pub mod sniffer;
+pub mod profile;
 
 /// Sets the application language.
 #[tauri::command]

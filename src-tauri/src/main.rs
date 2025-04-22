@@ -2,6 +2,9 @@
 #![allow(non_snake_case)]
 
 #[macro_use]
+extern crate log;
+
+#[macro_use]
 extern crate dotenv_codegen;
 
 #[macro_use]
@@ -14,6 +17,7 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::RwLock;
+use log::LevelFilter;
 use tauri::{generate_handler, AppHandle, Manager};
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 use tokio::runtime::Handle;
@@ -30,7 +34,7 @@ mod system;
 mod utils;
 mod window;
 
-use crate::app::{appearance, game};
+use crate::app::{appearance, game, profile};
 use crate::capabilities::sniffer;
 use crate::config::{Config, Language};
 use crate::state::*;
@@ -200,10 +204,10 @@ fn translate(key: String, args: Option<HashMap<String, String>>) -> String {
 /// This is exclusive to the desktop application.
 fn setup_tauri_app(
     app_handle: &AppHandle,
-    game_profile: RwLockReadGuard<'_, GameManager>,
+    game_manager: RwLockReadGuard<'_, GameManager>,
 ) -> Result<()> {
     // Initialize global state.
-    app_handle.manage(SelectedProfile::new(game_profile));
+    app_handle.manage(SelectedProfile::new(game_manager));
 
     Ok(())
 }
@@ -211,7 +215,7 @@ fn setup_tauri_app(
 /// Runs the Tauri desktop application.
 // noinspection RsUnnecessaryQualifications
 async fn run_tauri_app() {
-    let game_profile = GameManager::get().read().await;
+    let game_manager = GameManager::get().read().await;
 
     tauri::Builder::default()
         .plugin(
@@ -220,6 +224,7 @@ async fn run_tauri_app() {
                     Target::new(TargetKind::Stdout),
                     Target::new(TargetKind::LogDir { file_name: None }),
                 ])
+                .level(LevelFilter::Debug)
                 .format(|consumer, message, record| {
                     let time = time::format_description::parse("[hour]:[minute]:[second]").unwrap();
                     consumer.finish(format_args!(
@@ -240,15 +245,19 @@ async fn run_tauri_app() {
             game::game__is_open,
             game::game__launch,
             game::game__locate,
-            game::game__new_profile,
+            profile::profile__get_all,
+            profile::profile__new_profile,
+            profile::profile__set_profile,
             sniffer::sniffer__load,
+            app::sniffer::sniffer__run,
+            app::sniffer::sniffer__open,
             config::config__get,
             window::window__close,
             appearance::appearance__background,
             appearance::appearance__default_splash
         ])
         .setup(|app| {
-            setup_tauri_app(app.handle(), game_profile)?;
+            setup_tauri_app(app.handle(), game_manager)?;
             Ok(())
         })
         .run(utils::build_context())
